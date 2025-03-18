@@ -28,4 +28,3 @@ Per stampare la prima matrici eseguire questo test su cage4:
 make build-test-matrici run-test-matrici MATRICE=mat/cage4.mtx
 ```
 
-\#TODO FARE STRUCT PER CONSERVARE LA MATRICE
