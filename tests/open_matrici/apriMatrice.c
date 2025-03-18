@@ -19,9 +19,11 @@ int main(int argc, char *argv[])
 	}
     else    
     { 
-        if ((f = fopen(argv[1], "r")) == NULL) 
+        printf("1");
+
+        if ((f = fopen(argv[1], "r")) == NULL) {
             printf("Non trovo %s\n",argv[1]);
-            exit(1);
+            exit(1);}
     }
 
     if (mm_read_banner(f, &matcode) != 0)
@@ -29,7 +31,6 @@ int main(int argc, char *argv[])
         printf("Could not process Matrix Market banner.\n");
         exit(1);
     }
-
 
     /*  This is how one can screen matrix types if their application */
     /*  only supports a subset of the Matrix Market data types.      */
@@ -41,6 +42,7 @@ int main(int argc, char *argv[])
         printf("Market Market type: [%s]\n", mm_typecode_to_str(matcode));
         exit(1);
     }
+
 
     /* find out size of sparse matrix .... */
 

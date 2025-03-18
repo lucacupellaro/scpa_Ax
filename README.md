@@ -17,3 +17,15 @@ Per pulire o rieseguire questo determianto test eseguire :
 make run-test-cmake
 make clean-test-cmake
 ```
+
+
+
+## Esecuzione del Test Matrici  
+
+Per stampare la prima matrici eseguire questo test su cage4:
+
+```sh
+make build-test-matrici run-test-matrici MATRICE=mat/cage4.mtx
+```
+
+\#TODO FARE STRUCT PER CONSERVARE LA MATRICE
