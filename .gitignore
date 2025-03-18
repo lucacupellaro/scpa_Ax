@@ -1,0 +1,8 @@
+# Ignore all .mtx files
+*.mtx
+
+# Ignore .vscode directory
+.vscode/
+
+# Ignore all directories named "build"
+build/
