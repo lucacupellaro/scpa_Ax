@@ -19,3 +19,4 @@ typedef struct MatriceCsr{
  };
 
  int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPointer);
+ int freeMatCsr(struct MatriceCsr ** matricePointer);

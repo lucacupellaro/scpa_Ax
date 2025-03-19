@@ -47,4 +47,16 @@ int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPo
             j++;
         }
     }
+
+    for(int i=0;i<nRighe;i++){
+        free(indicesArray[i].indices);
+    }
+    free(indicesArray);
+}
+
+int freeMatCsr(struct MatriceCsr ** matricePointer){
+    free((*matricePointer)->iRP);
+    free((*matricePointer)->jValori);
+    free((*matricePointer)->valori);
+    free(*matricePointer);
 }
