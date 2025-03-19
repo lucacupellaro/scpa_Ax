@@ -74,3 +74,12 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
 	return 1;
 }
 
+
+int freeMatRaw(struct MatriceRaw ** matricePointer){
+    struct MatriceRaw *mat=*matricePointer;
+    free(mat->iVettore);
+    free(mat->jVettore);
+    free(mat->valori);
+    free(matricePointer);
+    return 0;
+}
