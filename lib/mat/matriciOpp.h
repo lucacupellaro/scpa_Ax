@@ -1,8 +1,8 @@
 typedef struct MatriceRaw{ // Importante: Le matrici potrebbero essere state salvate sia per righe che per colonna, nel nostro caso quasi sempre per colonne
-    int width,height;
-    int nz;
-    int *iVettore;
-    int *jVettore;
+    unsigned int width,height;
+    unsigned int nz;
+    unsigned int *iVettore;
+    unsigned int *jVettore;
     double *valori;
 };
 
@@ -11,11 +11,11 @@ int freeMatRaw(struct MatriceRaw ** matricePointer);
 
 
 typedef struct MatriceCsr{
-    int width,height;
-    int nz; 
-    int *iRP;   
-    int *jValori;
+    unsigned int width,height;
+    unsigned int nz; 
+    unsigned int *iRP;   
+    unsigned int *jValori;
     double *valori;
  };
 
- int convertRawToCsr(struct MatriceRaw * matricePointer);
+ int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPointer);
