@@ -13,9 +13,9 @@ int freeMatRaw(struct MatriceRaw ** matricePointer);
 typedef struct MatriceCsr{
     unsigned int width,height;
     unsigned int nz; 
-    unsigned int *iRP;   
-    unsigned int *jValori;
-    double *valori;
+    unsigned int *iRP;   // array of height+1 lenght
+    unsigned int *jValori; // array of size nz
+    double *valori;    // array of size
  };
 
  int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPointer);
