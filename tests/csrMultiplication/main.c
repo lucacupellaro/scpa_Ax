@@ -19,30 +19,27 @@ int main(int argc, char *argv[])
     }
     
     fprintf(stdout, "nz=%d height=%d width=%d\n", mat->nz, mat->height, mat->width);
-    #if PRINT==1
-    for(int i=0;i<mat->nz;i++){
-       fprintf(stdout, "%d %d %20.19g\n", mat->iVettore[i], mat->jVettore[i], mat->valori[i]);
-    }
-    #endif
+    
     struct MatriceCsr *csrMatrice;
     convertRawToCsr(mat,&csrMatrice);
-    #if PRINT==1
-    printf("[ ");
-    for(int i=0;i<=csrMatrice->width;i++){
-        printf("%d ",csrMatrice->iRP[i]);
+    unsigned int rows=mat->height;
+    struct Vector *vectorR;
+    int seed = 42;
+    
+    if (generate_random_vector(seed, rows, &vectorR) == 0) {
+       //printVector(vectorR);
+        //freeRandom(&vector);
+    } else {
+        printf("Failed to allocate memory or invalid input.\n");
+        return 1;
     }
-    printf("]\n");
-    printf("[ ");
-    for(int i=0;i<csrMatrice->nz;i++){
-        printf("%d ",csrMatrice->jValori[i]);
-    }
-    printf("]\n");
-    printf("[ ");
-    for(int i=0;i<csrMatrice->nz;i++){
-        printf("%f ",csrMatrice->valori[i]);
-    }
-    printf("]\n");
-	#endif
+
+    struct Vector *resultV;
+    generateEmpty(rows,&resultV);
+    double time=0;
+    serialCsrMultWithTime(csrMatrice,vectorR,resultV,&time);
+    printf("Serial calculation for nz:%u,%f time, %f GFLOPS",mat->nz,time,2.0*mat->nz/(time*1000000000));
+    //printVector(resultV);
     freeMatRaw(&mat);
     freeMatCsr(&csrMatrice);
 }

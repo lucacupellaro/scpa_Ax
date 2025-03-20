@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "mmio.h"
 #include "matriciOpp.h"
-
+#include <time.h> 
 typedef struct TempStruct{  // Defining a struct only for this function, for organizing the matrix in rows
     unsigned int elements;
  size_t bufferSize;
@@ -20,7 +20,7 @@ int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPo
     for(int i=0;i<nRighe;i++){
         indicesArray[i].elements=0;
         indicesArray[i].bufferSize=4;
-        indicesArray[i].indices=malloc(indicesArray[i].bufferSize);
+        indicesArray[i].indices=malloc(indicesArray[i].bufferSize*sizeof(unsigned int));
         if(indicesArray[i].indices==NULL)return -1;
     }
     for(int i=0;i<matricePointer->nz;i++) {// per ogni riga aggiungo alla rispettiva struttura tutti gli indici di MatriceRaw che riguardano la riga stessa
@@ -29,7 +29,7 @@ int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPo
             unsigned int  *newindex=malloc(sizeof(unsigned int)*indicesArray[indiceAttuale].bufferSize*2);
             memcpy(newindex,indicesArray[indiceAttuale].indices,sizeof(unsigned int)*indicesArray[indiceAttuale].bufferSize);
             indicesArray[indiceAttuale].bufferSize=indicesArray[indiceAttuale].bufferSize*2; 
-            free(indicesArray[indiceAttuale]. indices);
+            free(indicesArray[indiceAttuale].indices);
             indicesArray[indiceAttuale].indices=newindex;
         }
         indicesArray[indiceAttuale].indices[indicesArray[indiceAttuale].elements]=i;
@@ -65,9 +65,31 @@ int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPo
     return 0;
 }
 
+int serialCsrMult(struct MatriceCsr *csr,struct Vector *vec,struct Vector *result){
+    unsigned int nrows=vec->righr;
+    for(int i=0;i<nrows;i++){
+        double sum=0;
+        for(int j=csr->iRP[i];j<csr->iRP[i+1];j++){
+            sum+=csr->valori[j]*vec->vettore[csr->jValori[j]];
+        }
+        result->vettore[i]=sum;
+    }
+}
+
+int serialCsrMultWithTime(struct MatriceCsr *csr,struct Vector *vec,struct Vector *result,double *execTime){
+    clock_t t; 
+    t = clock(); 
+    serialCsrMult(csr,vec,result); 
+    t = clock() - t; 
+    (*execTime) = ((double)t)/CLOCKS_PER_SEC ; // in seconds 
+}
+
+
 int freeMatCsr(struct MatriceCsr ** matricePointer){
     free((*matricePointer)->iRP);
     free((*matricePointer)->jValori);
     free((*matricePointer)->valori);
     free(*matricePointer);
 }
+
+

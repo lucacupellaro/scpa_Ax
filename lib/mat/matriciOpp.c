@@ -80,6 +80,8 @@ int freeMatRaw(struct MatriceRaw ** matricePointer){
     free(mat->iVettore);
     free(mat->jVettore);
     free(mat->valori);
-    free(matricePointer);
+    free(mat);
     return 0;
 }
+
+
