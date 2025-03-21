@@ -14,6 +14,9 @@ BUILD_DIR_TEST_MATRICI=$(BUILDS_FOLDER)$(TEST_FOLDER_MATRICI)
 TEST_FOLDER_CSR_MULT=$(TEST_FOLDER)csrMultiplication
 BUILD_DIR_TEST_CSR_MULT=$(BUILDS_FOLDER)$(TEST_FOLDER_CSR_MULT)
 
+TEST_OPEN_HLL=$(TEST_FOLDER)open_hll
+BUILD_DIR_OPEN_HLL=$(BUILDS_FOLDER)$(TEST_OPEN_HLL)
+
 CURRENT_DIR := $(shell pwd)
 
 
@@ -40,6 +43,8 @@ build-test-matrici:
 	cd $(BUILD_DIR_TEST_MATRICI) && cmake --build .
 	#cd $(BUILD_DIR_TEST_MATRICI) && ./Main
 
+
+
 run-test-matrici:
 	echo "Checking parameters..."
 	if [ -z "$(MATRICE)" ]; then \
@@ -64,3 +69,19 @@ run-test-csrM:
         exit 1; \
     fi
 	cd $(BUILD_DIR_TEST_CSR_MULT) && ./Main $(CURRENT_DIR)/$(MATRICE)
+
+build-test-HLL:
+	mkdir -p $(BUILD_DIR_OPEN_HLL)
+	cd $(BUILD_DIR_OPEN_HLL) && cmake $(CURRENT_DIR)/$(TEST_OPEN_HLL)
+	cd $(BUILD_DIR_OPEN_HLL) && cmake --build .
+	#cd $(BUILD_DIR_OPEN_HLL) && ./Main
+
+
+
+run-test-HLL:
+	echo "Checking parameters..."
+	if [ -z "$(MATRICE)" ]; then \
+        echo "ERROR: MATRICE PATH is not set! put MATRICE=PATH at the end"; \
+        exit 1; \
+    fi 
+	cd $(BUILD_DIR_OPEN_HLL) && valgrind ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
