@@ -37,8 +37,9 @@ typedef struct MatriceCsr{
     double *valori;    // array of size
  };
 
+int parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result);
 int serialCsrMult(struct MatriceCsr *csr,struct Vector *vec,struct Vector *result);
-int serialCsrMultWithTime(struct MatriceCsr *csr,struct Vector *vec,struct Vector *result,double *execTime);
+int csrMultWithTime(int (*multiplayer)(struct MatriceCsr *,struct Vector *,struct Vector *),struct MatriceCsr *csr,struct Vector *vec,struct Vector *result,double *execTime);
 int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPointer);
 int freeMatCsr(struct MatriceCsr ** matricePointer);
 
