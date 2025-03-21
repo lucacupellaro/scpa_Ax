@@ -36,11 +36,11 @@ typedef struct MatriceHLL {
     int totalCols;        // Numero totale di colonne della matrice globale
     int HackSize;         // Numero di righe per blocco
     int numBlocks;        // Numero di blocchi totali
-    ELLPACK_Block* blocks; // Array di blocchi
+    ELLPACK_Block** blocks; // Array di blocchi
 } MatriceHLL;
 
 
 
-int convertRawToEllpack(struct MatriceRaw* matricePointer, int acksize, ELLPACK_Block* block);
+int convertRawToEllpack(struct MatriceRaw* matricePointer, int acksize, ELLPACK_Block** block);
 
 int convertRawToHll(struct MatriceRaw *matricePointer, int hackSizeP, struct MatriceHLL **hll);

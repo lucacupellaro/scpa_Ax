@@ -40,11 +40,7 @@ build-test-matrici:
 	cd $(BUILD_DIR_TEST_MATRICI) && cmake --build .
 	#cd $(BUILD_DIR_TEST_MATRICI) && ./Main
 
-build-test-HLL:
-	mkdir -p $(BUILD_DIR_OPEN_HLL)
-	cd $(BUILD_DIR_OPEN_HLL) && cmake $(CURRENT_DIR)/$(TEST_OPEN_HLL)
-	cd $(BUILD_DIR_OPEN_HLL) && cmake --build .
-	#cd $(BUILD_DIR_OPEN_HLL) && ./Main
+
 
 run-test-matrici:
 	echo "Checking parameters..."
@@ -54,10 +50,18 @@ run-test-matrici:
     fi
 	cd $(BUILD_DIR_TEST_MATRICI) && ./Main $(CURRENT_DIR)/$(MATRICE)
 
+build-test-HLL:
+	mkdir -p $(BUILD_DIR_OPEN_HLL)
+	cd $(BUILD_DIR_OPEN_HLL) && cmake $(CURRENT_DIR)/$(TEST_OPEN_HLL)
+	cd $(BUILD_DIR_OPEN_HLL) && cmake --build .
+	#cd $(BUILD_DIR_OPEN_HLL) && ./Main
+
+
+
 run-test-HLL:
 	echo "Checking parameters..."
 	if [ -z "$(MATRICE)" ]; then \
         echo "ERROR: MATRICE PATH is not set! put MATRICE=PATH at the end"; \
         exit 1; \
     fi 
-	cd $(BUILD_DIR_OPEN_HLL) && ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
+	cd $(BUILD_DIR_OPEN_HLL) && valgrind ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
