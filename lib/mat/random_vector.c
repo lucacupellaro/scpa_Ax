@@ -33,6 +33,7 @@ int generateEmpty(unsigned int rows,struct Vector **vettore){
     (*vettore)->vettore=calloc(sizeof(double),rows);
 }
 
+printf("ciao");
 
 void printVector(struct Vector *vec) {
     if (vec == NULL || vec->vettore == NULL) {
