@@ -65,7 +65,7 @@ int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPo
     return 0;
 }
 
-int serialCsrMult(struct MatriceCsr *csr,struct Vector *vec,struct Vector *result){
+int __attribute__((optimize("O0")))  serialCsrMult(struct MatriceCsr *csr,struct Vector *vec,struct Vector *result){
     unsigned int nrows=vec->righr;
     for(int i=0;i<nrows;i++){
         double sum=0;
@@ -76,10 +76,30 @@ int serialCsrMult(struct MatriceCsr *csr,struct Vector *vec,struct Vector *resul
     }
 }
 
-int serialCsrMultWithTime(struct MatriceCsr *csr,struct Vector *vec,struct Vector *result,double *execTime){
+
+#include <stdio.h>
+#include <omp.h>
+
+int __attribute__((optimize("O2"))) parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result) {
+    unsigned int nrows = vec->righr;
+    #pragma omp parallel for
+    for (int i = 0; i < nrows; i++) {
+        //int thread_id = omp_get_thread_num();
+        //printf("Hello from thread %d\n", thread_id);
+        
+        double sum = 0.0;
+        for (int j = csr->iRP[i]; j < csr->iRP[i + 1]; j++) {
+            sum += csr->valori[j] * vec->vettore[csr->jValori[j]];
+        }
+        result->vettore[i] = sum;
+    }
+}
+
+
+int csrMultWithTime(int (*multiplayer)(struct MatriceCsr *,struct Vector *,struct Vector *),struct MatriceCsr *csr,struct Vector *vec,struct Vector *result,double *execTime){
     clock_t t; 
     t = clock(); 
-    serialCsrMult(csr,vec,result); 
+    multiplayer(csr,vec,result); 
     t = clock() - t; 
     (*execTime) = ((double)t)/CLOCKS_PER_SEC ; // in seconds 
 }

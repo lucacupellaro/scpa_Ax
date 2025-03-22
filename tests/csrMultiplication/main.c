@@ -1,5 +1,9 @@
 
 #define PRINT 0
+
+
+#include <omp.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "matriciOpp.h"
@@ -33,13 +37,17 @@ int main(int argc, char *argv[])
         printf("Failed to allocate memory or invalid input.\n");
         return 1;
     }
+    omp_set_num_threads(8);
 
     struct Vector *resultV;
     generateEmpty(rows,&resultV);
     double time=0;
-    serialCsrMultWithTime(csrMatrice,vectorR,resultV,&time);
-    printf("Serial calculation for nz:%u,%f time, %f GFLOPS",mat->nz,time,2.0*mat->nz/(time*1000000000));
+    csrMultWithTime(&serialCsrMult,csrMatrice,vectorR,resultV,&time);
+    printf("Serial calculation for nz:%u,%f time, %f GFLOPS\n",mat->nz,time,2.0*mat->nz/(time*1000000000));
     //printVector(resultV);
+    time=0;
+    csrMultWithTime(&parallelCsrMult,csrMatrice,vectorR,resultV,&time);
+    printf("Parallel calculation for nz:%u,%f time, %f GFLOPS\n",mat->nz,time,2.0*mat->nz/(time*1000000000));
     freeMatRaw(&mat);
     freeMatCsr(&csrMatrice);
 }
