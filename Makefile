@@ -84,4 +84,4 @@ run-test-HLL:
         echo "ERROR: MATRICE PATH is not set! put MATRICE=PATH at the end"; \
         exit 1; \
     fi 
-	cd $(BUILD_DIR_OPEN_HLL) && valgrind ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
+	cd $(BUILD_DIR_OPEN_HLL) && ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
