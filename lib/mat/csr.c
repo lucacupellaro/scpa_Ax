@@ -77,12 +77,16 @@ int __attribute__((optimize("O0")))  serialCsrMult(struct MatriceCsr *csr,struct
 }
 
 
+#include <stdio.h>
 #include <omp.h>
-int __attribute__((optimize("O0"))) parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result) {
-    unsigned int nrows = vec->righr;
 
+int __attribute__((optimize("O2"))) parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result) {
+    unsigned int nrows = vec->righr;
     #pragma omp parallel for
     for (int i = 0; i < nrows; i++) {
+        //int thread_id = omp_get_thread_num();
+        //printf("Hello from thread %d\n", thread_id);
+        
         double sum = 0.0;
         for (int j = csr->iRP[i]; j < csr->iRP[i + 1]; j++) {
             sum += csr->valori[j] * vec->vettore[csr->jValori[j]];

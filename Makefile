@@ -63,4 +63,4 @@ run-test-csrM:
         echo "ERROR: MATRICE PATH is not set! put MATRICE=PATH at the end"; \
         exit 1; \
     fi
-	cd $(BUILD_DIR_TEST_CSR_MULT) && ./Main $(CURRENT_DIR)/$(MATRICE)
+	cd $(BUILD_DIR_TEST_CSR_MULT)  &&./Main $(CURRENT_DIR)/$(MATRICE)

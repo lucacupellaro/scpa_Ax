@@ -1,6 +1,9 @@
 
 #define PRINT 0
 
+
+#include <omp.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "matriciOpp.h"
@@ -34,6 +37,7 @@ int main(int argc, char *argv[])
         printf("Failed to allocate memory or invalid input.\n");
         return 1;
     }
+    omp_set_num_threads(8);
 
     struct Vector *resultV;
     generateEmpty(rows,&resultV);
