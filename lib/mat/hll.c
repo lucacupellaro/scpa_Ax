@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "mmio.h"
 #include "matriciOpp.h"
+#include <time.h> 
+#include <omp.h>
 
 
 int convertRawToHll(struct MatriceRaw *matricePointer, int hackSizeP, struct MatriceHLL **hllP) {
@@ -250,6 +252,100 @@ int printHLL(struct MatriceHLL **hllP) {
     return 0;
 }
 
+int serialMultiply(struct MatriceHLL** matriceHLL, struct Vector *vec, struct Vector *result){
+
+
+
+    if (!matriceHLL || !(*matriceHLL) || !vec || !result)
+        return -1;
+
+    struct MatriceHLL *mat = *matriceHLL;
+
+    if (vec->righr != mat->totalCols || result->righr != mat->totalRows)
+        return -1;
+
+    for (int b = 0; b < mat->numBlocks; b++) {
+        ELLPACK_Block *block = mat->blocks[b];
+        int globalRowStart = b * mat->HackSize;
+
+        for (int i = 0; i < block->M; i++) {
+            double t = 0.0;
+            for (int j = 0; j < block->MAXNZ; j++) {
+                int colIndex = block->JA[i][j];
+                double val = block->AS[i][j];
+
+                // CONTROLLO INDISPENSABILE
+                if(colIndex >= 0 && colIndex < vec->righr) {
+                    t += val * vec->vettore[colIndex];
+                }
+            }
+            result->vettore[globalRowStart + i] = t;
+        }
+    }
+
+    return 0; // esecuzione corretta
+}
+
+int serialHllMultWithTime(struct MatriceHLL **HllMat,struct Vector *vec,struct Vector *result,double *execTime){
+  
+    clock_t t; 
+    t = clock(); 
+    serialMultiply(HllMat,vec,result); 
+    t = clock() - t; 
+    (*execTime) = ((double)t)/CLOCKS_PER_SEC ; // in seconds 
+    return 0;
+}
+
+
+int openMpHllMultWithTime(struct MatriceHLL **HllMat,struct Vector *vec,struct Vector *result,double *execTime){
+  
+    clock_t t; 
+    t = clock(); 
+    openMpMultiply(HllMat,vec,result); 
+    t = clock() - t; 
+    (*execTime) = ((double)t)/CLOCKS_PER_SEC ; // in seconds 
+    return 0;
+}
+
+
+int openMpMultiply(struct MatriceHLL** matriceHLL, struct Vector *vec, struct Vector *result) {
+
+    if (!matriceHLL || !(*matriceHLL) || !vec || !result)
+        return -1;
+
+    struct MatriceHLL *mat = *matriceHLL;
+
+    if (vec->righr != mat->totalCols || result->righr != mat->totalRows)
+        return -1;
+   
+    omp_set_num_threads(20);
+    #pragma pragma omp parallel(static)
+   
+    for (int b = 0; b < mat->numBlocks; b++) {
+        ELLPACK_Block *block = mat->blocks[b];
+        int globalRowStart = b * mat->HackSize;
+
+        int t=omp_get_max_threads();
+        //printf("n threads: %d\n", t);
+
+        
+        for (int i = 0; i < block->M; i++) {
+            double t = 0.0;
+            for (int j = 0; j < block->MAXNZ; j++) {
+                int colIndex = block->JA[i][j];
+                double val = block->AS[i][j];
+
+                // Controllo indispensabile: assicura che l'indice sia valido
+                if (colIndex >= 0 && colIndex < vec->righr) {
+                    t += val * vec->vettore[colIndex];
+                }
+            }
+            result->vettore[globalRowStart + i] = t;
+        }
+    }
+
+    return 0; // esecuzione corretta
+}
 
 
 
