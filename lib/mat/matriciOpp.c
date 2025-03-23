@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include "mmio.h"
 #include "matriciOpp.h"
-
+#include <time.h>
+#include <omp.h>
 int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
 {
     int ret_code;
@@ -73,6 +74,16 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
     
 	return 1;
 }
+
+int multMatrixAndMeasureTime(int (*multiplayer)(void *,struct Vector *,struct Vector *),void *matrice,struct Vector *vec,struct Vector *result,double *execTime){
+    clock_t t;
+    t = clock();
+    int value=multiplayer(matrice, vec, result);
+    t = clock() - t;
+    (*execTime) = ((double)t) / CLOCKS_PER_SEC; // in seconds
+    return value;
+}
+
 
 
 int freeMatRaw(struct MatriceRaw ** matricePointer){

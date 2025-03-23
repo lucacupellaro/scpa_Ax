@@ -6,3 +6,5 @@
 
 # Ignore all directories named "build"
 builds/
+
+*.csv

@@ -17,6 +17,9 @@ BUILD_DIR_TEST_CSR_MULT=$(BUILDS_FOLDER)$(TEST_FOLDER_CSR_MULT)
 TEST_OPEN_HLL=$(TEST_FOLDER)open_hll
 BUILD_DIR_OPEN_HLL=$(BUILDS_FOLDER)$(TEST_OPEN_HLL)
 
+TEST_SAVE_STATS=$(TEST_FOLDER)saveStats
+BUILD_DIR_STATS_TEST=$(BUILDS_FOLDER)$(TEST_SAVE_STATS)
+
 CURRENT_DIR := $(shell pwd)
 
 
@@ -85,3 +88,31 @@ run-test-HLL:
         exit 1; \
     fi 
 	cd $(BUILD_DIR_OPEN_HLL) && ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
+
+
+build-test-stats:
+	mkdir -p $(BUILD_DIR_STATS_TEST)
+	cd $(BUILD_DIR_STATS_TEST) && cmake $(CURRENT_DIR)/$(TEST_SAVE_STATS)
+	cd $(BUILD_DIR_STATS_TEST) && cmake --build .
+	#cd $(BUILD_DIR_STATS_TEST) && ./Main
+
+
+
+run-test-stats:
+	@echo "Checking parameters..."
+	@{ \
+	    if [ -z "$(MATRICE)" ]; then \
+	        echo "ERROR: MATRICE PATH is not set! Use MATRICE=PATH"; exit 1; \
+	    fi; \
+	    if [ -z "$(THREADS)" ]; then \
+	        echo "ERROR: THREADS is not set! Use THREADS=NUM"; exit 1; \
+	    fi; \
+	    if [ -z "$(ITERATIONS)" ]; then \
+	        echo "ERROR: ITERATIONS is not set! Use ITERATIONS=NUM"; exit 1; \
+	    fi; \
+	    if [ -z "$(HACK)" ]; then \
+	        echo "ERROR: HACK is not set! Use HACK=VALUE"; exit 1; \
+	    fi; \
+	    echo "All parameters are set. Running test..."; \
+	    cd $(BUILD_DIR_STATS_TEST) && ./Main $(CURRENT_DIR)/$(MATRICE) $(THREADS) $(ITERATIONS) $(HACK); \
+	}

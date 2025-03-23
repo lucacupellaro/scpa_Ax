@@ -14,7 +14,7 @@ void printVector(struct Vector *vec);
 
 
 
-typedef struct MatriceRaw{ // Importante: Le matrici potrebbero essere state salvate sia per righe che per colonna, nel nostro caso quasi sempre per colonne
+typedef struct MatriceRaw{ 
     unsigned int width,height;
     unsigned int nz;
     unsigned int *iVettore;
@@ -43,7 +43,8 @@ int csrMultWithTime(int (*multiplayer)(struct MatriceCsr *,struct Vector *,struc
 int convertRawToCsr(struct MatriceRaw * matricePointer,struct MatriceCsr **csrPointer);
 int freeMatCsr(struct MatriceCsr ** matricePointer);
 
-// Struttura del blocco in formato ELLPACK
+
+
 typedef struct {
     int M;      // Righe del blocco (HackSize o meno)
     int N;      // Colonne del blocco
@@ -52,7 +53,7 @@ typedef struct {
     double** AS;// Valori dei coefficienti
 } ELLPACK_Block;
 
-// Struttura della matrice HLL
+
 typedef struct MatriceHLL {
     int totalRows;        // Numero totale di righe della matrice globale
     int totalCols;        // Numero totale di colonne della matrice globale
@@ -61,8 +62,9 @@ typedef struct MatriceHLL {
     ELLPACK_Block** blocks; // Array di blocchi
 } MatriceHLL;
 
-
-
 int convertRawToEllpack(struct MatriceRaw* matricePointer, int acksize, ELLPACK_Block** block);
-
 int convertRawToHll(struct MatriceRaw *matricePointer, int hackSizeP, struct MatriceHLL **hll);
+int serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result);
+int hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, struct Vector *), struct MatriceHLL *csr, struct Vector *vec, struct Vector *result, double *execTime);
+int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result);
+int printHLL(struct MatriceHLL **hllP);
