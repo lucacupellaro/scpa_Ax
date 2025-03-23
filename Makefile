@@ -17,6 +17,9 @@ BUILD_DIR_TEST_CSR_MULT=$(BUILDS_FOLDER)$(TEST_FOLDER_CSR_MULT)
 TEST_OPEN_HLL=$(TEST_FOLDER)open_hll
 BUILD_DIR_OPEN_HLL=$(BUILDS_FOLDER)$(TEST_OPEN_HLL)
 
+TEST_OPEN_CUDAHLL=$(TEST_FOLDER)cudaTest
+BUILD_DIR_OPEN_CUDAHLL=$(BUILDS_FOLDER)$(TEST_OPEN_CUDAHLL)
+
 TEST_SAVE_STATS=$(TEST_FOLDER)saveStats
 BUILD_DIR_STATS_TEST=$(BUILDS_FOLDER)$(TEST_SAVE_STATS)
 
@@ -116,3 +119,26 @@ run-test-stats:
 	    echo "All parameters are set. Running test..."; \
 	    cd $(BUILD_DIR_STATS_TEST) && ./Main $(CURRENT_DIR)/$(MATRICE) $(THREADS) $(ITERATIONS) $(HACK); \
 	}
+
+
+run-test-cudaHll:
+	echo "Checking parameters..."
+	if [ -z "$(MATRICE)" ]; then \
+        echo "ERROR: MATRICE PATH is not set! put MATRICE=PATH at the end"; \
+        exit 1; \
+    fi 
+	cd $(BUILD_DIR_OPEN_CUDAHLL) && ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
+
+
+build-test-cudaHll:
+	mkdir -p $(BUILD_DIR_OPEN_CUDAHLL)
+	cd $(BUILD_DIR_OPEN_CUDAHLL) && cmake $(CURRENT_DIR)/$(TEST_OPEN_CUDAHLL)
+	cd $(BUILD_DIR_OPEN_CUDAHLL) && cmake --build .
+	#cd $(BUILD_DIR_OPEN_CUDAHLL) && ./Main
+
+
+
+	
+
+
+
