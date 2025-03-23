@@ -2,6 +2,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "matriciOpp.h"
+int areVectorsEqual(const Vector *v1, const Vector *v2) {
+    // Check if both vectors have the same number of rows
+    if (v1->righr != v2->righr) {
+        return -1;
+    }
+
+    // Compare each element within the defined tolerance (EPSILON)
+    for (unsigned int i = 0; i < v1->righr; i++) {
+        if (fabs(v1->vettore[i] - v2->vettore[i]) > EPSILON) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
 
 int generate_random_vector(int seed, unsigned int righe, struct Vector **pointerToVector) {
     if (righe <= 0) {  // Controllo se righe è 0, dato che un vettore vuoto potrebbe non essere desiderato

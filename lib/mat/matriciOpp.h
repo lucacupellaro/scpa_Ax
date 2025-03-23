@@ -1,10 +1,15 @@
 
 #define RANDOM_VECTOR_MAX_VALUE 1.0
+#include <math.h>
+#define EPSILON 1e-9  // Define a small tolerance for floating-point comparison
 
-typedef struct Vector{
+typedef struct Vector {
     unsigned int righr;
     double *vettore;
-};
+} Vector;
+
+int areVectorsEqual(const Vector *v1, const Vector *v2);
+
 int generate_random_vector(int seed, unsigned int righe, struct Vector **pointerToVector);
 int freeRandom(struct Vector **pointerToVector);
 int generateEmpty(unsigned int rows,struct Vector **vettore);

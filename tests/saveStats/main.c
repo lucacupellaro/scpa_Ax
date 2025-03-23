@@ -51,7 +51,6 @@ int main(int argc, char *argv[])
     struct Vector *resultV2;
     generateEmpty(rows, &resultV2);
     initializeCsvEntry(&results[1], nomeMat + 1, "csr", "parallelOpenMp", threads, 0, iterations);
-
     time = 0;
     for (int i = 0; i < iterations; i++)
     {
@@ -59,6 +58,7 @@ int main(int argc, char *argv[])
         results[1].measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     freeMatCsr(&csrMatrice);
+    printf("if 0 csr serial and parllale are euqal:%d\n",areVectorsEqual(resultV1,resultV2));
 
     struct MatriceHLL *matHll;
     convertRawToHll(mat, hack, &matHll);
@@ -71,15 +71,18 @@ int main(int argc, char *argv[])
         hllMultWithTime(&serialMultiplyHLL, matHll, vectorR, resultV3, &time);
         results[2].measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
+    printf("if 0 csr serial and hll serial are euqal:%d\n",areVectorsEqual(resultV1,resultV3));
+
     struct Vector *resultV4;
     generateEmpty(rows, &resultV4);
     initializeCsvEntry(&results[3], nomeMat + 1, "hll", "parallelOpenMp", threads, hack, iterations);
     time = 0;
     for (int i = 0; i < iterations; i++)
     {
-        hllMultWithTime(&serialMultiplyHLL, matHll, vectorR, resultV3, &time);
+        hllMultWithTime(&serialMultiplyHLL, matHll, vectorR, resultV4, &time);
         results[3].measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
+    printf("if 0 hll serial and hll serial are euqal:%d\n",areVectorsEqual(resultV3,resultV4));
 
     writeCsvEntriesToFile("../../../test.csv", results, 4);
     //    csrMultWithTime(&serialCsrMult,csrMatrice,vectorR,resultV,&time);
