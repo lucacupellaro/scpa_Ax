@@ -54,8 +54,8 @@ typedef struct {
     int M;      // Righe del blocco (HackSize o meno)
     int N;      // Colonne del blocco
     int MAXNZ;  // Max non-zero per riga
-    int** JA;   // Indici di colonna
-    double** AS;// Valori dei coefficienti
+    int* JA;   // Indici di colonna
+    double* AS;// Valori dei coefficienti
 } ELLPACK_Block;
 
 

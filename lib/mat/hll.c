@@ -183,25 +183,25 @@ int convertRawToEllpack(struct MatriceRaw *matricePointer, int acksize, ELLPACK_
     printf("DEBUG:N blocchi block=%d\n", block->M);
 #endif
 
-    block->JA = malloc(blockRows * sizeof(int *));
-    block->AS = malloc(blockRows * sizeof(double *));
+    block->JA = calloc(blockRows *MAXNZ ,sizeof(int));
+    block->AS = calloc(blockRows * MAXNZ,sizeof(double));
     if (block->JA == NULL || block->AS == NULL)
     {
         fprintf(stderr, "Errore di allocazione per JA o AS.\n");
         free(row_nnz);
         return -1;
     }
-    for (int i = 0; i < blockRows; i++)
+    /*for (int i = 0; i < blockRows; i++)
     {
-        block->JA[i] = calloc(MAXNZ, sizeof(int));    // padding con zeri (o -1 se preferisci)
-        block->AS[i] = calloc(MAXNZ, sizeof(double)); // padding con zeri
+        //block->JA[i] = calloc(MAXNZ, sizeof(int));    // padding con zeri (o -1 se preferisci)
+        //block->AS[i] = calloc(MAXNZ, sizeof(double)); // padding con zeri
         if (block->JA[i] == NULL || block->AS[i] == NULL)
         {
             fprintf(stderr, "Errore di allocazione per riga %d.\n", i);
             free(row_nnz);
             return -1;
         }
-    }
+    }*/
 
     // Riempie la struttura ELLPACK: per ogni riga, inserisce gli indici e i valori non-zero
     int *filled = calloc(blockRows, sizeof(int));
@@ -236,8 +236,8 @@ int convertRawToEllpack(struct MatriceRaw *matricePointer, int acksize, ELLPACK_
         int j = matricePointer->jVettore[k];
         double val = matricePointer->valori[k];
 
-        block->JA[i][pos] = j;
-        block->AS[i][pos] = val;
+        block->JA[i*MAXNZ+pos] = j;
+        block->AS[i*MAXNZ+pos] = val;
         filled[i]++;
     }
 
@@ -269,6 +269,7 @@ int printHLL(struct MatriceHLL **hllP)
         printf("  M (righe): %d\n", block->M);
         printf("  N (colonne): %d\n", block->N);
         printf("  MAXNZ (max non-zero per riga): %d\n", block->MAXNZ);
+        int maxnz=block->MAXNZ;
 
         // Per ogni riga del blocco, stampo gli array JA e AS
         for (int i = 0; i < block->M; i++)
@@ -277,14 +278,14 @@ int printHLL(struct MatriceHLL **hllP)
             printf("      JA: ");
             for (int j = 0; j < block->MAXNZ; j++)
             {
-                printf("%d ", block->JA[i][j]);
+                printf("%d ", block->JA[i*maxnz+j]);
             }
             printf("\n");
 
             printf("      AS: ");
             for (int j = 0; j < block->MAXNZ; j++)
             {
-                printf("%f ", block->AS[i][j]);
+                printf("%f ", block->AS[i*maxnz+j]);
             }
             printf("\n");
         }
@@ -293,10 +294,10 @@ int printHLL(struct MatriceHLL **hllP)
     return 0;
 }
 
-int serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
+int __attribute__((optimize("O3"))) serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)// tolto if importante perche inizializando la memoria con calloc trova 0 invece di una cosa a caso quindi non ci sono problemi
 {
 
-    if (!mat  || !vec || !result)
+  if (!mat  || !vec || !result)
         return -1;
 
 
@@ -307,20 +308,14 @@ int serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
     {
         ELLPACK_Block *block = mat->blocks[b];
         int globalRowStart = b * mat->HackSize;
-
+        int maxnz=block->MAXNZ;
         for (int i = 0; i < block->M; i++)
         {
             double t = 0.0;
             for (int j = 0; j < block->MAXNZ; j++)
             {
-                int colIndex = block->JA[i][j];
-                double val = block->AS[i][j];
-
-                // CONTROLLO INDISPENSABILE
-                if (colIndex >= 0 && colIndex < vec->righr)
-                {
-                    t += val * vec->vettore[colIndex];
-                }
+       
+                t += block->AS[i*maxnz+j] * vec->vettore[block->JA[i*maxnz+j]];
             }
             result->vettore[globalRowStart + i] = t;
         }
@@ -331,7 +326,7 @@ int serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
 
 
 
-int hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, struct Vector *), struct MatriceHLL *hll, struct Vector *vec, struct Vector *result, double *execTime)
+int  hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, struct Vector *), struct MatriceHLL *hll, struct Vector *vec, struct Vector *result, double *execTime)
 {
     clock_t t;
     t = clock();
@@ -341,7 +336,7 @@ int hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, str
     return retunrE;
 }
 
-int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
+int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
 {
 
     if (!mat || !vec || !result)
@@ -352,8 +347,6 @@ int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
         return -1;
 
        //#pragma pragma omp parallel(static)
-       #pragma omp parallel for  
-
     for (int b = 0; b < mat->numBlocks; b++)
     {
         ELLPACK_Block *block = mat->blocks[b];
@@ -361,20 +354,13 @@ int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
 
         //int thread_id = omp_get_thread_num();
         //printf("Hello from thread %d\n", thread_id);
-
-        for (int i = 0; i < block->M; i++)
-        {
+        int maxnz = block->MAXNZ;
+        #pragma omp parallel for 
+        for (int i = 0; i < block->M; i++) {
             double t = 0.0;
-            for (int j = 0; j < block->MAXNZ; j++)
-            {
-                int colIndex = block->JA[i][j];
-                double val = block->AS[i][j];
-
-                // Controllo indispensabile: assicura che l'indice sia valido
-                if (colIndex >= 0 && colIndex < vec->righr)
-                {
-                    t += val * vec->vettore[colIndex];
-                }
+            int row_start = i * maxnz;  // Avoid recomputation in loop
+            for (int j = 0; j < maxnz; j++) {
+                t += block->AS[row_start + j] * vec->vettore[block->JA[row_start + j]];
             }
             result->vettore[globalRowStart + i] = t;
         }

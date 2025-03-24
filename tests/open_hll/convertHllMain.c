@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     printf("Result vector (y = Ax) Serial:\n");
     // printVector(result);
 
-    omp_set_num_threads(10);
+    omp_set_num_threads(20);
     int multResult2 = hllMultWithTime(&openMpMultiplyHLL,matHll, vect, result, &time2);
     if (multResult != 0)
     {

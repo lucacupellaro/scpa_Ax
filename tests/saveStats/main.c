@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     time = 0;
     for (int i = 0; i < iterations; i++)
     {
-        hllMultWithTime(&serialMultiplyHLL, matHll, vectorR, resultV4, &time);
+        hllMultWithTime(&openMpMultiplyHLL, matHll, vectorR, resultV4, &time);
         results[3].measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     printf("if 0 hll serial and hll serial are euqal:%d\n",areVectorsEqual(resultV3,resultV4));
