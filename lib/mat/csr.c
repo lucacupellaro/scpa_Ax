@@ -92,7 +92,7 @@ int __attribute__((optimize("O0"))) serialCsrMult(struct MatriceCsr *csr, struct
 #include <stdio.h>
 #include <omp.h>
 
-int __attribute__((optimize("O2"))) parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result)
+int __attribute__((optimize("O3"))) parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result)
 {
     unsigned int nrows = vec->righr;
 #pragma omp parallel for
