@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "matriciOpp.h"
 #include <omp.h>
+
 int main(int argc, char *argv[])
 {
 

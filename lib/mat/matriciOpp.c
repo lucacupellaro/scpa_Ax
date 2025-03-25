@@ -94,5 +94,3 @@ int freeMatRaw(struct MatriceRaw ** matricePointer){
     free(mat);
     return 0;
 }
-
-

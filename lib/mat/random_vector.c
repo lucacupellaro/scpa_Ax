@@ -4,12 +4,12 @@
 #include "matriciOpp.h"
 int areVectorsEqual(const Vector *v1, const Vector *v2) {
     // Check if both vectors have the same number of rows
-    if (v1->righr != v2->righr) {
+    if (v1->righe != v2->righe) {
         return -1;
     }
 
     // Compare each element within the defined tolerance (EPSILON)
-    for (unsigned int i = 0; i < v1->righr; i++) {
+    for (unsigned int i = 0; i < v1->righe; i++) {
         if (fabs(v1->vettore[i] - v2->vettore[i]) > EPSILON) {
             return -1;
         }
@@ -37,7 +37,7 @@ int generate_random_vector(int seed, unsigned int righe, struct Vector **pointer
     }
 
     // Imposta correttamente il numero di elementi
-    (*pointerToVector)->righr = righe;
+    (*pointerToVector)->righe = righe;
 
     // Inizializza il generatore di numeri casuali con il seme fornito
     srand(seed);
@@ -61,7 +61,7 @@ int generateEmpty(unsigned int rows, struct Vector **vettore) {
         return -1; 
     }
     
-    (*vettore)->righr = rows;  
+    (*vettore)->righe = rows;  
     (*vettore)->vettore = calloc(rows, sizeof(double));
     if ((*vettore)->vettore == NULL) {
         free(*vettore);
@@ -79,8 +79,8 @@ void printVector(struct Vector *vec) {
         return;
     }
 
-    printf("Vector with %u elements:\n", vec->righr);
-    for (unsigned int i = 0; i < vec->righr; i++) {
+    printf("Vector with %u elements:\n", vec->righe);
+    for (unsigned int i = 0; i < vec->righe; i++) {
         printf("%.4f ", vec->vettore[i]);
     }
     printf("\n");

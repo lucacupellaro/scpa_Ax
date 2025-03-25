@@ -301,7 +301,7 @@ int __attribute__((optimize("O3"))) serialMultiplyHLL(struct MatriceHLL *mat, st
         return -1;
 
 
-    if (vec->righr != mat->totalCols || result->righr != mat->totalRows)
+    if (vec->righe != mat->totalCols || result->righe != mat->totalRows)
         return -1;
 
     for (int b = 0; b < mat->numBlocks; b++)
@@ -343,7 +343,7 @@ int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, st
         return -1;
 
 
-    if (vec->righr != mat->totalCols || result->righr != mat->totalRows)
+    if (vec->righe != mat->totalCols || result->righe != mat->totalRows)
         return -1;
 
        //#pragma pragma omp parallel(static)
