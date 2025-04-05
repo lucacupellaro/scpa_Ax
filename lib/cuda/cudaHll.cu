@@ -113,10 +113,14 @@ __global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, Vector *x, Vector *y,
     int numBlocks = dMat->numBlocks;  // numero di blocchi
 
     int global_row = blockIdx.x * blockDim.x + threadIdx.x;
+
+    /*
     if (global_row >= total_rows) {
        
         return;
     }
+    */
+    
 
     // Determina a quale blocco appartiene la riga globale.
     int row_count = 0;
@@ -125,10 +129,13 @@ __global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, Vector *x, Vector *y,
         row_count += dMat->block_rows[b];
         b++;
     }
+    /*
     if (b >= numBlocks) {
         
         return;
     }
+    */
+    
 
     int local_row = global_row - row_count;
     int offset = dMat->block_offsets[b];
@@ -138,15 +145,17 @@ __global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, Vector *x, Vector *y,
     
 
     double sum = 0.0;
-    // Ciclo per ogni "slot" della riga
     for (int j = 0; j < maxnz; j++) {
         int idx = offset + j * rows_in_block + local_row;
         int col = dMat->col_indices_flat[idx];
-        // Debug: stampiamo l'indice e la colonna letta
         
-        if (col >= 0) {
+        
+        /*
+         if (col >= 0) {
             sum += dMat->values_flat[idx] * x->vettore[col];
         }
+        */
+       
     }
     y->vettore[global_row] = sum;
     

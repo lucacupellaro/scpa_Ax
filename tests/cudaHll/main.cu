@@ -125,10 +125,6 @@ int main(int argc, char *argv[] ) {
     cudaHllMat->block_nnz      = d_block_nnz;
     cudaHllMat->block_rows     = d_block_rows;
 
-
-   
-    
-
     // 3. Allocazione della struttura sulla GPU e copia della struttura aggiornata
     struct FlatELLMatrix *d_mat;
     cudaMalloc((void**)&d_mat, sizeof(struct FlatELLMatrix));
@@ -151,8 +147,7 @@ int main(int argc, char *argv[] ) {
 
     double *d_result_vettore;
     cudaMalloc((void**)&d_result_vettore, sizeof(double) * result->righe);
-    // Se necessario, copia i dati da result->vettore:
-    // cudaMemcpy(d_result_vettore, result->vettore, sizeof(double) * result->righe, cudaMemcpyHostToDevice);
+ 
 
     // 2. Aggiorna il campo 'vettore' della struttura host per 'result'
     result->vettore = d_result_vettore;
@@ -163,7 +158,7 @@ int main(int argc, char *argv[] ) {
     cudaMemcpy(d_result, result, sizeof(struct Vector), cudaMemcpyHostToDevice);
 
    
-    int threadsPerBlock = 32;
+    int threadsPerBlock = 128;
     int blocksPerGrid = (total_rows + threadsPerBlock - 1) / threadsPerBlock;
 
     cudaEventCreate(&start);
@@ -171,14 +166,37 @@ int main(int argc, char *argv[] ) {
     cudaEventRecord(start, 0);
     matvec_flatell_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_mat,d_vect,d_result,total_rows);
     cudaEventRecord(stop, 0);
+
     cudaEventSynchronize(stop);
 
-    float time;
-    cudaEventElapsedTime(&time,start,stop);
+    float time_ms;
+    cudaEventElapsedTime(&time_ms, start, stop);
+
+    
+    double time_sec = time_ms / 1000.0;
+
+    double totalFLOPs = 2.0 * cudaHllMat->total_values;
+
+    double gflops = totalFLOPs / (time_sec * 1e9);
+
+    printf("Tempo medio del kernel: %f s\n", time_sec);
+    printf("GFLOPS: %lf\n", gflops);
+
+
+     // Copia del risultato dalla GPU alla CPU
+    cudaMemcpy(result->vettore, d_result_vettore, result->righe * sizeof(double), cudaMemcpyDeviceToHost);
+
 
     printf("%f",time);
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
+    cudaFree(d_values_flat);
+    cudaFree(d_col_indices_flat);
+    cudaFree(d_vect);
+    cudaFree(d_result);
+    cudaFree(d_block_offsets);
+    cudaFree(d_block_nnz);
+    cudaFree(d_block_rows);
 
     cudaError err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -187,8 +205,6 @@ int main(int argc, char *argv[] ) {
     }
      
     
-    
-    
-    
+
     return 0;
 }
