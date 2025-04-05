@@ -58,6 +58,58 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
 
     if (f !=stdin) fclose(f);
 
+     //symmetric matrix
+     if (mm_is_symmetric(matcode)) {
+
+        // Calcola il nuovo numero di elementi (nz) aggiungendo un duplicato per ogni elemento off-diagonale
+        int new_nz = matrice->nz;
+        for (int i = 0; i < matrice->nz; i++) {
+            if (matrice->iVettore[i] != matrice->jVettore[i])
+                new_nz++;
+        }
+        
+       
+        unsigned int *new_i = malloc(new_nz * sizeof(unsigned int));
+        unsigned int *new_j = malloc(new_nz * sizeof(unsigned int));
+        double *new_val = malloc(new_nz * sizeof(double));
+        
+        if (new_i == NULL || new_j == NULL || new_val == NULL) {
+            perror("Errore di allocazione memoria per matrice simmetrica.");
+            free(new_i);
+            free(new_j);
+            free(new_val);
+            return 0;
+        }
+        
+        int count = 0;
+      
+        for (int i = 0; i < matrice->nz; i++) {
+            new_i[count] = matrice->iVettore[i];
+            new_j[count] = matrice->jVettore[i];
+            new_val[count] = matrice->valori[i];
+            count++;
+            
+            // Se l'elemento è off-diagonale, aggiungi anche il corrispettivo simmetrico
+            if (matrice->iVettore[i] != matrice->jVettore[i]) {
+                new_i[count] = matrice->jVettore[i];
+                new_j[count] = matrice->iVettore[i];
+                new_val[count] = matrice->valori[i];
+                count++;
+            }
+        }
+        
+       
+        free(matrice->iVettore);
+        free(matrice->jVettore);
+        free(matrice->valori);
+        
+     
+        matrice->iVettore = new_i;
+        matrice->jVettore = new_j;
+        matrice->valori = new_val;
+        matrice->nz = new_nz;
+    }
+
     /************************/
     /* now write out matrix */
     /************************/
