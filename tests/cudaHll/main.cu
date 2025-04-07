@@ -13,6 +13,8 @@ int main(int argc, char *argv[] ) {
     struct MatriceRaw *mat;
     struct Vector *vect;
     struct Vector *result;
+    struct Vector *result2;
+    struct Vector *resultSerial;
     struct FlatELLMatrix *cudaHllMat;
     cudaEvent_t start,stop;
 
@@ -64,6 +66,24 @@ int main(int argc, char *argv[] ) {
         return emptyResult;
     }
 
+    emptyResult = generateEmpty(mat->height, &resultSerial);
+    if (emptyResult != 0)
+    {
+        printf("Error while creating result vectorSerial\n");
+        return emptyResult;
+    }
+
+    printf("\n dimensione resultSeires: %d",resultSerial->righe);
+
+    
+
+    emptyResult = generateEmpty(mat->height, &result2);
+    if (emptyResult != 0)
+    {
+        printf("Error while creating result vectorSerial\n");
+        return emptyResult;
+    }
+
  
 
     int flatHll = convertHLLToFlatELL(&matHll, &cudaHllMat);
@@ -81,7 +101,6 @@ int main(int argc, char *argv[] ) {
         total_rows += cudaHllMat->block_rows[i];
     }
 
-    printf("il numero di righe totale:%d\n",total_rows);
 
     
     double *d_values_flat;
@@ -137,6 +156,7 @@ int main(int argc, char *argv[] ) {
     cudaMemcpy(d_vettore, vect->vettore, sizeof(double) * vect->righe, cudaMemcpyHostToDevice);
 
     // 2. Aggiorna il campo 'vettore' della struttura host per puntare all'array allocato sulla GPU
+    double *temp=vect->vettore;
     vect->vettore = d_vettore;
 
     // 3. Alloca la struttura 'Vector' su GPU e copia la struttura aggiornata
@@ -156,6 +176,8 @@ int main(int argc, char *argv[] ) {
     struct Vector *d_result;
     cudaMalloc((void**)&d_result, sizeof(struct Vector));
     cudaMemcpy(d_result, result, sizeof(struct Vector), cudaMemcpyHostToDevice);
+
+   
 
    
     int threadsPerBlock = 128;
@@ -183,11 +205,14 @@ int main(int argc, char *argv[] ) {
     printf("GFLOPS: %lf\n", gflops);
 
 
+    cudaError memcopy;
      // Copia del risultato dalla GPU alla CPU
-    cudaMemcpy(result->vettore, d_result_vettore, result->righe * sizeof(double), cudaMemcpyDeviceToHost);
+    memcopy=cudaMemcpy(result2->vettore, d_result_vettore, result2->righe * sizeof(double), cudaMemcpyDeviceToHost);
+    if (memcopy!=cudaSuccess) {
+        printf("errore");
+    }   
 
 
-    printf("%f",time);
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
     cudaFree(d_values_flat);
@@ -198,11 +223,42 @@ int main(int argc, char *argv[] ) {
     cudaFree(d_block_nnz);
     cudaFree(d_block_rows);
 
+   
+  
+   
+    vect->vettore=temp;
+    
+  
+    
+    double time2=0;
+
+    int multResult = hllMultWithTime(&serialMultiplyHLL,matHll, vect, resultSerial, &time2);
+    if (multResult != 0)
+    {
+        printf("Error in serialMultiply, error code: %d\n", multResult);
+        return multResult;
+    }
+    
+
+
+    
+
+    
+    int check=areVectorsEqual(result2,resultSerial);
+    if(check!=0){
+        printf("the vectorsa are different");
+    }
+
+
+    
+
     cudaError err = cudaGetLastError();
     if (err != cudaSuccess) {
         fprintf(stderr, "Errore nel lancio del kernel: %s\n", cudaGetErrorString(err));
         return -1;
     }
+
+    
      
     
 

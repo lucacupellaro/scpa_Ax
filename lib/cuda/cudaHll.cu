@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h> 
 
+
 #define DEBUG 0
 
 
@@ -121,6 +122,9 @@ __global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, Vector *x, Vector *y,
     }
     */
     
+    
+    
+    
 
     // Determina a quale blocco appartiene la riga globale.
     int row_count = 0;
@@ -136,6 +140,8 @@ __global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, Vector *x, Vector *y,
     }
     */
     
+    
+    
 
     int local_row = global_row - row_count;
     int offset = dMat->block_offsets[b];
@@ -150,13 +156,18 @@ __global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, Vector *x, Vector *y,
         int col = dMat->col_indices_flat[idx];
         
         
-        /*
+        
          if (col >= 0) {
             sum += dMat->values_flat[idx] * x->vettore[col];
         }
-        */
+        
        
     }
     y->vettore[global_row] = sum;
+
+     // Stampo direttamente (solo a scopo dimostrativo)
+     //printf("Kernel: y[%d] = %f\n", global_row, sum);
+
+    
     
 }

@@ -5,6 +5,8 @@ project(CUDATest LANGUAGES C CXX CUDA)
 set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++" CACHE PATH "CUDA host compiler" FORCE)
 set(CMAKE_CUDA_ARCHITECTURES 86)
 set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" CACHE PATH "CUDA compiler" FORCE)
+#set(CMAKE_CUDA_STANDARD 11)
+#set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 if(USE_CUDA_ALLOC)
     add_definitions(-D USE_CUDA_ALLOC)
