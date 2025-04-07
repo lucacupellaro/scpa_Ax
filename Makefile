@@ -155,8 +155,6 @@ build-test-cudaHll:
 	cd $(BUILD_DIR_OPEN_CUDAHLL) && cmake --build .
 	#cd $(BUILD_DIR_OPEN_CUDAHLL) && ./Main
 
-
-
 	
 
 
