@@ -1,4 +1,6 @@
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 #define RANDOM_VECTOR_MAX_VALUE 1.0
 #include <math.h>
 #define EPSILON 1e-9  // Define a small tolerance for floating-point comparison
@@ -25,7 +27,7 @@ typedef struct MatriceRaw{
     unsigned int *iVettore;
     unsigned int *jVettore;
     double *valori;
-};
+}MatriceRaw;
 
 int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer);
 int freeMatRaw(struct MatriceRaw ** matricePointer);
@@ -40,7 +42,7 @@ typedef struct MatriceCsr{
     unsigned int *iRP;   // array of height+1 lenght
     unsigned int *jValori; // array of size nz
     double *valori;    // array of size
- };
+ }MatriceCsr;
 
 int parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result);
 int serialCsrMult(struct MatriceCsr *csr,struct Vector *vec,struct Vector *result);
@@ -73,3 +75,7 @@ int serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
 int hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, struct Vector *), struct MatriceHLL *csr, struct Vector *vec, struct Vector *result, double *execTime);
 int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result);
 int printHLL(struct MatriceHLL **hllP);
+
+#ifdef __cplusplus
+}
+#endif

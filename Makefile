@@ -20,6 +20,14 @@ BUILD_DIR_OPEN_HLL=$(BUILDS_FOLDER)$(TEST_OPEN_HLL)
 TEST_SAVE_STATS=$(TEST_FOLDER)saveStats
 BUILD_DIR_STATS_TEST=$(BUILDS_FOLDER)$(TEST_SAVE_STATS)
 
+TEST_CUDA_HELLO=$(TEST_FOLDER)cudaHello
+BUILD_DIR_CUDA_HELLO_TEST=$(BUILDS_FOLDER)$(TEST_CUDA_HELLO)
+
+
+TEST_FAST=$(TEST_FOLDER)personaleTests
+BUILD_DIR_TEST_FAST=$(BUILDS_FOLDER)$(TEST_FAST)
+
+
 CURRENT_DIR := $(shell pwd)
 
 
@@ -115,4 +123,35 @@ run-test-stats:
 	    fi; \
 	    echo "All parameters are set. Running test..."; \
 	    cd $(BUILD_DIR_STATS_TEST) && ./Main $(CURRENT_DIR)/$(MATRICE) $(THREADS) $(ITERATIONS) $(HACK); \
+	}
+
+
+
+build-test-cuda-hello:
+	mkdir -p $(BUILD_DIR_CUDA_HELLO_TEST)
+	cd $(BUILD_DIR_CUDA_HELLO_TEST) && cmake $(CURRENT_DIR)/$(TEST_CUDA_HELLO)
+	cd $(BUILD_DIR_CUDA_HELLO_TEST) && cmake --build .
+	#cd $(BUILD_DIR_CUDA_HELLO_TEST) && ./Main
+
+
+
+run-test-cuda-hello:
+	cd $(BUILD_DIR_CUDA_HELLO_TEST) && ./main 
+
+build-test-fast:
+	mkdir -p $(BUILD_DIR_TEST_FAST)
+	cd $(BUILD_DIR_TEST_FAST) && cmake $(CURRENT_DIR)/$(TEST_FAST)
+	cd $(BUILD_DIR_TEST_FAST) && cmake --build .
+	#cd $(BUILD_DIR_TEST_FAST) && ./Main
+
+
+
+run-test-fast:
+	@echo "Checking parameters..."
+	@{ \
+	    if [ -z "$(MATRICE)" ]; then \
+	        echo "ERROR: MATRICE PATH is not set! Use MATRICE=PATH"; exit 1; \
+	    fi;\
+	    echo "All parameters are set. Running test..."; \
+		cd $(BUILD_DIR_TEST_FAST) && ./main $(CURRENT_DIR)/$(MATRICE) ;\
 	}
