@@ -180,13 +180,13 @@ int main(int argc, char *argv[] ) {
    
 
    
-    int threadsPerBlock = 128;
+    int threadsPerBlock = 256;
     int blocksPerGrid = (total_rows + threadsPerBlock - 1) / threadsPerBlock;
 
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
-    matvec_flatell_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_mat,d_vect,d_result,total_rows);
+    matvec_flatell_kernel2<<<blocksPerGrid, threadsPerBlock>>>(d_mat,d_vect,d_result,total_rows);
     cudaEventRecord(stop, 0);
 
     cudaEventSynchronize(stop);
