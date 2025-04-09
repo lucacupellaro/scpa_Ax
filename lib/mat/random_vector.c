@@ -14,7 +14,7 @@ int areVectorsEqual(const Vector *v1, const Vector *v2) {
     }
 
     // Compare each element within the defined tolerance (EPSILON)
-    for (unsigned int i = 0; i < v1->righr; i++) {
+    for (unsigned int i = 0; i < v1->righe; i++) {
         float module=(fabs(v1->vettore[i])+fabs(v2->vettore[i])/2);
         float diff=fabs(v1->vettore[i] - v2->vettore[i]);
         if(diff<EPSILON){

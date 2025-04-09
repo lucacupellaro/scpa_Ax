@@ -199,7 +199,7 @@ int main(int argc, char *argv[] ) {
     cudaEventRecord(start, 0);
 
 
-    matvec_flatell_kernel2_reduction<<<grid_size, block_size,num_threads * sizeof(double)>>>(d_mat,d_vettore,d_result_vettore,hack);
+    matvec_flatell_kernel<<<grid_size, block_size>>>(d_mat,d_vettore,d_result_vettore,hack);
 
     //matvec_flatell_kernel4<<<grid_size, block_size, sharedMemSize>>>(d_mat,d_vettore,d_result_vettore,hack,righex);
 
@@ -270,15 +270,16 @@ int main(int argc, char *argv[] ) {
         return multResult;
     }
     
-
-
-   for(int i=0;i < (result2->righe) ;i++){
+    
+     for(int i=0;i < (result2->righe) ;i++){
 
         if(result2->vettore[i]!=resultSerial->vettore[i]){
             printf("\n: valori diversi (%lf vs %lf)\n", result2->vettore[i], resultSerial->vettore[i]);
         }
 
    }
+    
+  
     
     int check=areVectorsEqual(result2,resultSerial);
     if(check!=0){
