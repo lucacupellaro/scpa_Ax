@@ -50,7 +50,23 @@
 
 
 
-
+// Macro for safe cudaMemcpy
+#define CUDA_TIME(operation,nz)                           \
+    { \
+    cudaEvent_t start, stop;                               \
+    CUDA_CHECK(cudaEventCreate(&start));                \
+    CUDA_CHECK(cudaEventCreate(&stop));                 \
+    CUDA_CHECK(cudaEventRecord(start, 0));              \
+    operation; \
+    CUDA_CHECK(cudaEventRecord(stop, 0)); \
+    CUDA_CHECK(cudaDeviceSynchronize());\
+    float seconds = 0;  \
+    CUDA_CHECK(cudaEventElapsedTime(&seconds, start, stop)); \
+    seconds=seconds/1000.0;\
+    CUDA_CHECK(cudaEventDestroy(start));\
+    CUDA_CHECK(cudaEventDestroy(stop));\
+    printf("giga flops %f\n",nz*2/(seconds*1000000000.0)); \
+    } 
 
 
 void allocateAndCopyCsrGpu( MatriceCsr *orgi,  MatriceCsr **mat) {
@@ -107,15 +123,14 @@ void vectorMultiplySerial(Vector *a, Vector* b, Vector * result) {
     }
 }
 
-// CUDA Kernel for CSR matrix-vector multiplication
-__global__ void csr_matvec_mul(MatriceCsr d_mat, Vector d_vec, double *d_result) {
+__global__ void csr_matvec_mul(MatriceCsr *d_mat, Vector *d_vec, Vector *d_result) {
     int row = blockIdx.x * blockDim.x + threadIdx.x;
-    if (row < d_mat.height) {
+    if (row < d_mat->height) {
         double sum = 0.0;
-        for (int j = d_mat.iRP[row]; j < d_mat.iRP[row + 1]; j++) {
-            sum += d_mat.valori[j] * d_vec.vettore[d_mat.jValori[j]];
+        for (int j = d_mat->iRP[row]; j < d_mat->iRP[row + 1]; j++) {
+            sum += d_mat->valori[j] * d_vec->vettore[d_mat->jValori[j]];
         }
-        d_result[row] = sum;
+        d_result->vettore[row] = sum;
     }
 }
 
@@ -127,17 +142,24 @@ __global__ void vectorMultiply(Vector *a, Vector *b, Vector *result) {
     }
 }
 
+void matSimpleMult(char *file);
+
 int main(int argc, char *argv[]) {
     if (argc < 2)
 	{
 		fprintf(stderr, "Usage: %s [martix-market-filename]\n", argv[0]);
 		exit(1);
 	}
+    matSimpleMult(argv[1]);
+
+   }
+
+void matSimpleMult(char *file){
     MatriceRaw *mat;
-    int err=loadMatRaw(argv[1],&mat);
+    int err=loadMatRaw(file,&mat);
     if(err!=1){
         printf("Errore leggendo la matrice");
-        return 0;
+        return ;
     }
     
     fprintf(stdout, "nz=%d height=%d width=%d\n", mat->nz, mat->height, mat->width);
@@ -145,11 +167,37 @@ int main(int argc, char *argv[]) {
     MatriceCsr *csrMatrice;
     convertRawToCsr(mat,&csrMatrice);
     MatriceCsr *matG;
-    //allocateAndCopyCsrGpu(csrMatrice,&matG);
-
+    allocateAndCopyCsrGpu(csrMatrice,&matG);
     unsigned int rows=mat->height;
-   
-   }
+
+    Vector *vector1;
+    Vector *result;
+    Vector *vector1G;
+    Vector *resultG;
+    int seed=10;
+    int numOfElements=rows;
+    generate_random_vector(seed, numOfElements, &vector1) ;
+    generateEmpty(numOfElements,&result);
+    allocateAndCopyVector(vector1,&vector1G);
+    allocateAndCopyVector(result,&resultG);
+    
+    printf("ALLOCATED EVERYTHING\n");
+    int N = vector1->righr;
+    int threadsPerBlock = 16;
+    int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+    CUDA_TIME((csr_matvec_mul<<<blocksPerGrid, threadsPerBlock>>>(matG, vector1G, resultG)),csrMatrice->nz);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    copyVectorBackToHost(result,resultG);
+    Vector *resultSerial;
+    generateEmpty(numOfElements,&resultSerial);
+    serialCsrMult(csrMatrice,vector1,resultSerial);
+
+
+    int areEq=areVectorsEqual(result,resultSerial);
+    printf("are equal(0 yes)? %d\n",areEq);
+
+}
+
     
 
 void testVectors(int rows){
@@ -198,5 +246,9 @@ void testVectors(int rows){
     printf("giga flops %f\n",vector1->righr/(execTime*1000000000.0));
     int areEq=areVectorsEqual(result,resultSerial);
     printf("are equal(0 yes)? %d\n",areEq);
-    return 0;
+    return ;
+ 
 }
+
+
+

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "matriciOpp.h"
-int areVectorsEqual(const Vector *v1, const Vector *v2) {
+int areVectorsEqual( Vector *v1,  Vector *v2) {
     // Check if both vectors have the same number of rows
     if (v1->righr != v2->righr) {
         return -1;

@@ -10,7 +10,7 @@ typedef struct Vector {
     double *vettore;// has right elements
 } Vector;
 
-int areVectorsEqual(const Vector *v1, const Vector *v2);
+int areVectorsEqual( Vector *v1,  Vector *v2);
 
 int generate_random_vector(int seed, unsigned int righe, struct Vector **pointerToVector);
 int freeRandom(struct Vector **pointerToVector);
