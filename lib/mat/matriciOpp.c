@@ -120,8 +120,8 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
 
     if (f !=stdin) fclose(f);
 
-    //symmetric matrix
-    if (mm_is_symmetric(matcode)) {
+     //symmetric matrix
+     if (mm_is_symmetric(matcode)) {
 
         // Calcola il nuovo numero di elementi (nz) aggiungendo un duplicato per ogni elemento off-diagonale
         int new_nz = matrice->nz;
@@ -171,7 +171,7 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
         matrice->valori = new_val;
         matrice->nz = new_nz;
     }
-    
+
     /************************/
     /* now write out matrix */
     /************************/
