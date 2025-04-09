@@ -7,7 +7,7 @@ extern "C" {
 
 typedef struct Vector {
     unsigned int righr;
-    double *vettore;
+    double *vettore;// has right elements
 } Vector;
 
 int areVectorsEqual(const Vector *v1, const Vector *v2);
@@ -39,9 +39,9 @@ int freeMatRaw(struct MatriceRaw ** matricePointer);
 typedef struct MatriceCsr{
     unsigned int width,height;
     unsigned int nz; 
-    unsigned int *iRP;   // array of height+1 lenght
-    unsigned int *jValori; // array of size nz
-    double *valori;    // array of size
+    unsigned int *iRP;   // array of height+1 elements
+    unsigned int *jValori; // array with nz elements
+    double *valori;    // array with nz elements
  }MatriceCsr;
 
 int parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result);
