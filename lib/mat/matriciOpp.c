@@ -4,13 +4,67 @@
 #include "matriciOpp.h"
 #include <time.h>
 #include <omp.h>
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <limits.h>
+#include <errno.h>
+
+char *resolve_symlink(const char *path) {
+    char *resolved = realpath(path, NULL);
+    if (resolved) {
+        return resolved;
+    }
+
+    // If realpath failed but it's a symlink, resolve manually
+    char buf[PATH_MAX];
+    ssize_t len = readlink(path, buf, sizeof(buf) - 1);
+    if (len == -1) {
+        perror("readlink");
+        return NULL;
+    }
+
+    buf[len] = '\0';
+
+    // If the link is relative, resolve it based on the directory of `path`
+    char *dir = strdup(path);
+    if (!dir) {
+        perror("strdup");
+        return NULL;
+    }
+
+    char *slash = strrchr(dir, '/');
+    if (slash) {
+        *(slash + 1) = '\0';  // Keep the trailing slash
+    } else {
+        strcpy(dir, "./");
+    }
+
+    char combined[PATH_MAX];
+    if (buf[0] != '/') {
+        snprintf(combined, sizeof(combined), "%s%s", dir, buf);
+    } else {
+        strncpy(combined, buf, sizeof(combined));
+    }
+
+    free(dir);
+
+    // Recurse to resolve the next level
+    return resolve_symlink(combined);
+}
+
+
 int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
 {
     int ret_code;
     MM_typecode matcode;
     FILE *f;
     int M, N, nz;   
-
+    filePath=resolve_symlink(filePath);
+    printf("%s\n",filePath);
     if ((f = fopen(filePath, "r")) == NULL) {
             printf("Non trovo %s\n",filePath);
             return 0;}

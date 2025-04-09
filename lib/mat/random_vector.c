@@ -10,12 +10,19 @@ int areVectorsEqual( Vector *v1,  Vector *v2) {
 
     // Compare each element within the defined tolerance (EPSILON)
     for (unsigned int i = 0; i < v1->righr; i++) {
-        if (fabs(v1->vettore[i] - v2->vettore[i]) > EPSILON) {
+        float module=(fabs(v1->vettore[i])+fabs(v2->vettore[i])/2);
+        float diff=fabs(v1->vettore[i] - v2->vettore[i]);
+        if(diff<EPSILON){
+            continue;
+        }else if(diff/module<EPSILON && module>EPSILON*module){
+            continue;
+        }else{
             return -1;
         }
     }
-
     return 0;
+
+   
 }
 
 int generate_random_vector(int seed, unsigned int righe, struct Vector **pointerToVector) {
