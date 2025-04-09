@@ -2,9 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "matriciOpp.h"
+
+
 int areVectorsEqual(const Vector *v1, const Vector *v2) {
     // Check if both vectors have the same number of rows
     if (v1->righe != v2->righe) {
+        
+        printf("\nVettore1: %lf ",v1->vettore[1]);
+        printf("\nVettore2: %lf ",v2->vettore[1]);
         return -1;
     }
 
@@ -15,8 +20,11 @@ int areVectorsEqual(const Vector *v1, const Vector *v2) {
         }
     }
 
+    
+
     return 0;
 }
+
 
 int generate_random_vector(int seed, unsigned int righe, struct Vector **pointerToVector) {
     if (righe <= 0) {  // Controllo se righe è 0, dato che un vettore vuoto potrebbe non essere desiderato

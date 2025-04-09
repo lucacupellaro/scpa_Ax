@@ -1,65 +1,71 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h> 
-
+#include <time.h>
 
 #define DEBUG 0
 
-
-
-int convertHLLToFlatELL(MatriceHLL** H, FlatELLMatrix** flatMat) {
+int convertHLLToFlatELL(MatriceHLL **H, FlatELLMatrix **flatMat)
+{
     // Allocazione della struttura FlatELLMatrix
-    *flatMat = (FlatELLMatrix*)malloc(sizeof(FlatELLMatrix));
-    if (!(*flatMat)) {
+    *flatMat = (FlatELLMatrix *)malloc(sizeof(FlatELLMatrix));
+    if (!(*flatMat))
+    {
         perror("Errore di allocazione della struttura FlatELLMatrix");
         return -1;
     }
-    
+
     int numBlocks = (*H)->numBlocks;
     (*flatMat)->numBlocks = numBlocks;
-    
+
     // Calcola il numero totale di elementi da allocare
     int total = 0;
-    for (int b = 0; b < numBlocks; b++) {
-        ELLPACK_Block* block = (*H)->blocks[b];
-        if (block) {
+    for (int b = 0; b < numBlocks; b++)
+    {
+        ELLPACK_Block *block = (*H)->blocks[b];
+        if (block)
+        {
             total += block->M * block->MAXNZ;
         }
     }
     (*flatMat)->total_values = total;
-    
+
     // Allocazione degli array per il formato Flat ELLPACK
-    (*flatMat)->values_flat = (double*)malloc(total * sizeof(double));
-    (*flatMat)->col_indices_flat = (int*)malloc(total * sizeof(int));
-    (*flatMat)->block_offsets = (int*)malloc(numBlocks * sizeof(int));
-    (*flatMat)->block_nnz = (int*)malloc(numBlocks * sizeof(int));
-    (*flatMat)->block_rows = (int*)malloc(numBlocks * sizeof(int));
-    
+    (*flatMat)->values_flat = (double *)malloc(total * sizeof(double));
+    (*flatMat)->col_indices_flat = (int *)malloc(total * sizeof(int));
+    (*flatMat)->block_offsets = (int *)malloc(numBlocks * sizeof(int));
+    (*flatMat)->block_nnz = (int *)malloc(numBlocks * sizeof(int));
+    (*flatMat)->block_rows = (int *)malloc(numBlocks * sizeof(int));
+
     if (!(*flatMat)->values_flat || !(*flatMat)->col_indices_flat ||
-        !(*flatMat)->block_offsets || !(*flatMat)->block_nnz || !(*flatMat)->block_rows) {
+        !(*flatMat)->block_offsets || !(*flatMat)->block_nnz || !(*flatMat)->block_rows)
+    {
         perror("Errore di allocazione negli array Flat ELLPACK");
         return -1;
     }
-    
+
     int offset = 0;
-    for (int b = 0; b < numBlocks; b++) {
-        ELLPACK_Block* block = (*H)->blocks[b];
-        if (!block) continue;
-        
+    for (int b = 0; b < numBlocks; b++)
+    {
+        ELLPACK_Block *block = (*H)->blocks[b];
+        if (!block)
+            continue;
+
         int M = block->M;
         int MAXNZ = block->MAXNZ;
-        
+
         // Salva i metadati per il blocco corrente
         (*flatMat)->block_offsets[b] = offset;
         (*flatMat)->block_nnz[b] = MAXNZ;
         (*flatMat)->block_rows[b] = M;
-        
+
         // Copia dei dati: si copia in ordine colonna-per-riga.
         // L'elemento nella riga i e nella "colonna slot" j del blocco
         // viene memorizzato a: offset + j * M + i.
-        for (int i = 0; i < M; i++) {
-            for (int j = 0; j < MAXNZ; j++) {
+        for (int i = 0; i < M; i++)
+        {
+            for (int j = 0; j < MAXNZ; j++)
+            {
                 int dst_idx = offset + j * M + i;
                 int src_idx = i * MAXNZ + j; // Gli array JA e AS sono in ordine riga-per-riga
                 (*flatMat)->values_flat[dst_idx] = block->AS[src_idx];
@@ -68,34 +74,38 @@ int convertHLLToFlatELL(MatriceHLL** H, FlatELLMatrix** flatMat) {
         }
         offset += M * MAXNZ;
     }
-    
+
     return 0;
 }
 
-
-void printFlatELLMatrix(FlatELLMatrix** flatMat) {
-    if (flatMat == NULL || *flatMat == NULL) {
+void printFlatELLMatrix(FlatELLMatrix **flatMat)
+{
+    if (flatMat == NULL || *flatMat == NULL)
+    {
         printf("La struttura FlatELLMatrix è NULL.\n");
         return;
     }
-    
+
     FlatELLMatrix *F = *flatMat;
     printf("Flat ELLPACK Matrix:\n");
     printf("Total values: %d, numBlocks: %d\n", F->total_values, F->numBlocks);
-    
+
     // Scorre ciascun blocco
-    for (int b = 0; b < F->numBlocks; b++) {
+    for (int b = 0; b < F->numBlocks; b++)
+    {
         int offset = F->block_offsets[b];
-        int rows   = F->block_rows[b];
-        int maxnz  = F->block_nnz[b];
-        
+        int rows = F->block_rows[b];
+        int maxnz = F->block_nnz[b];
+
         printf("Block %d: offset = %d, rows = %d, MAXNZ = %d\n", b, offset, rows, maxnz);
-        
+
         // Per ogni riga del blocco
-        for (int i = 0; i < rows; i++) {
+        for (int i = 0; i < rows; i++)
+        {
             // Per ogni "slot" nella riga (fino a MAXNZ)
-            for (int j = 0; j < maxnz; j++) {
-                
+            for (int j = 0; j < maxnz; j++)
+            {
+
                 int idx = offset + j * rows + i;
                 printf("[col=%d, val=%f] ", F->col_indices_flat[idx], F->values_flat[idx]);
             }
@@ -104,146 +114,138 @@ void printFlatELLMatrix(FlatELLMatrix** flatMat) {
         printf("\n");
     }
 }
-
-
-
-  
-
-/*
-__global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, Vector *x, Vector *y, int total_rows)
-{    
-    
-    
-    int numBlocks = dMat->numBlocks;  // numero di blocchi
-
-    int global_row = blockIdx.x * blockDim.x + threadIdx.x;
-
-    int row_count = 0;
-    int b = 0;
-    while (b < numBlocks && (row_count + dMat->block_rows[b]) <= global_row) {
-        row_count += dMat->block_rows[b];
-        b++;
-    }
-    
-    
-    int local_row = global_row - row_count;
-    int offset = dMat->block_offsets[b];
-    int maxnz = dMat->block_nnz[b];
-    int rows_in_block = dMat->block_rows[b]; //numero righe per blocco b
+__global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, double *x, double *y, int hack_size) {
+    int global_row = blockIdx.x * blockDim.x + threadIdx.x; 
 
     
+    if (global_row >= dMat->numBlocks * hack_size) return;
+
+    // Trova a quale blocco appartiene questa riga
+    int block_id = global_row / hack_size;
+    if (block_id >= dMat->numBlocks) return;
+
+    int block_start = dMat->block_offsets[block_id];   // Offset del blocco
+    int rows_in_block = dMat->block_rows[block_id];    // Righe nel blocco
+
+    // Riga locale nel blocco
+    int local_row = global_row % hack_size;
+    if (local_row >= rows_in_block) return;
 
     double sum = 0.0;
-    for (int j = 0; j < maxnz; j++) {
-        int idx = offset + j * rows_in_block + local_row;
-        int col = dMat->col_indices_flat[idx];
-        
+    int max_nnz = dMat->block_nnz[block_id];  // NNZ massimo per riga nel blocco
+
+    // Moltiplicazione matrice-vettore per la riga corrente
+    for (int j = 0; j < max_nnz; j++) {
+
+        int col = dMat->col_indices_flat[block_start + j * rows_in_block + local_row];
         if (col >= 0) {
-            sum += dMat->values_flat[idx] * x->vettore[col];
+            sum += dMat->values_flat[block_start + j * rows_in_block + local_row] * x[col];
         }
-        
-        
-       
     }
-    y->vettore[global_row] = sum;
 
-     // Stampo direttamente (solo a scopo dimostrativo)
-     //printf("Kernel: y[%d] = %f\n", global_row, sum);
-
-    
-    
+    y[global_row] = sum;
 }
-*/
+
+
+__global__ void matvec_flatell_kernel2_reduction(FlatELLMatrix *dMat, double *x, double *y, int hack_size) {
+    int global_row = blockIdx.x * blockDim.x + threadIdx.x;  // Indice globale della riga
+
+    // Verifica se il thread è all'interno del range
+    if (global_row >= dMat->numBlocks * hack_size) return;
+
+    // Trova a quale blocco appartiene questa riga
+    int block_id = global_row / hack_size;
+    if (block_id >= dMat->numBlocks) return;
+
+    int block_start = dMat->block_offsets[block_id];   // Offset del blocco
+    int rows_in_block = dMat->block_rows[block_id];    // Righe nel blocco
+
+    // Riga locale nel blocco
+    int local_row = global_row % hack_size;
+    if (local_row >= rows_in_block) return;
+
+    // Memoria condivisa per la somma locale
+    extern __shared__ double partial_sum[];  // Usa memoria condivisa dinamica, dimensione passata al kernel
+
+    // Ogni thread inizia con una somma parziale
+    double sum = 0.0;
+    int max_nnz = dMat->block_nnz[block_id];  // NNZ massimo per riga nel blocco
+
+    // Moltiplicazione matrice-vettore per la riga corrente
+    for (int j = 0; j < max_nnz; j++) {
+        int col = dMat->col_indices_flat[block_start + j * rows_in_block + local_row];
+        if (col >= 0) {
+            sum += dMat->values_flat[block_start + j * rows_in_block + local_row] * x[col];
+        }
+    }
+
+    // Memorizziamo il risultato parziale nella memoria condivisa
+    partial_sum[threadIdx.x] = sum;
+    __syncthreads(); // Sincronizzazione di tutti i thread del blocco
+
+    // Reduce dei risultati parziali all'interno del blocco
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+        if (threadIdx.x < stride) {
+            partial_sum[threadIdx.x] += partial_sum[threadIdx.x + stride];
+        }
+        __syncthreads();  // Sincronizzazione di tutti i thread prima della successiva riduzione
+    }
+
+    // Il thread 0 scrive il risultato finale del blocco in y
+    if (threadIdx.x == 0) {
+        y[global_row] = partial_sum[0];
+    }
+}
 
 
 
-__global__ void matvec_flatell_kernel22(FlatELLMatrix *dMat, Vector *x, Vector *y, int total_rows) {  
-    int numBlocks = dMat->numBlocks;  // Numero di blocchi
-    int global_row = blockIdx.x * blockDim.x + threadIdx.x;  // Calcola l'indice della riga globale
 
-    if (global_row >= total_rows) return;  // Se la riga globale è fuori dai limiti, termina il thread
+__global__ void matvec_flatell_kernel3_safe(
+    const double *values_flat,
+    const int *col_indices_flat,
+    const int *block_offsets,
+    const int *block_nnz,
+    const int *block_rows,
+    const double *x,
+    double *y,
+    const int *numBlocks,  // Puntatore a int
+    int hack_size,
+    int x_length) 
+{
+    // Carica numBlocks dalla memoria globale
+    const int nBlocks = *numBlocks;
+    
+    int global_row = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    // Verifica se il thread è all'interno del range
+    if (global_row >= nBlocks * hack_size) return;
 
-    // Calcola il blocco senza ciclo
-    int block_id = global_row / dMat->block_rows[0];  // Usa il numero di righe per blocco per determinare il blocco
-    if (block_id >= numBlocks) return;  // Se il blocco supera il numero di blocchi, termina il thread
+    // Trova a quale blocco appartiene questa riga
+    int block_id = global_row / hack_size;
+    if (block_id >= nBlocks) return;
 
-    int local_row = global_row % dMat->block_rows[block_id];  // Calcola la riga locale all'interno del blocco
-    int offset = dMat->block_offsets[block_id];  // Ottieni l'offset del blocco corrente
-    int maxnz = dMat->block_nnz[block_id];  // Numero massimo di elementi non nulli nel blocco
-    int rows_in_block = dMat->block_rows[block_id];  // Numero di righe nel blocco
+    // Carica i metadati del blocco
+    int block_start = block_offsets[block_id];
+    int rows_in_block = block_rows[block_id];
+
+    // Riga locale nel blocco
+    int local_row = global_row % hack_size;
+    if (local_row >= rows_in_block) return;
 
     double sum = 0.0;
+    int max_nnz = block_nnz[block_id];  // NNZ massimo per riga nel blocco
 
-    // Ciclo attraverso gli elementi non nulli del blocco
-    for (int j = 0; j < maxnz; j++) {
-        int idx = offset + j * rows_in_block + local_row;  // Calcola l'indice per la matrice piatta
-        int col = dMat->col_indices_flat[idx];  // Ottieni la colonna corrispondente
-
-        if (col >= 0) {  // Se la colonna è valida (non sparsa)
-            sum += dMat->values_flat[idx] * x->vettore[col];  // Calcola il prodotto scalare
+    // Moltiplicazione matrice-vettore per la riga corrente
+    for (int j = 0; j < max_nnz; j++) {
+        int idx = block_start + j * rows_in_block + local_row;
+        int col = col_indices_flat[idx];
+        
+        // Aggiunto controllo sui limiti di x rispetto alla versione originale
+        if (col >= 0 && col < x_length) {
+            sum += values_flat[idx] * x[col];
         }
     }
 
-    // Scrivi il risultato nel vettore y
-    y->vettore[global_row] = sum;
-
-    // Stampa per debug (se necessario)
-    //printf("Kernel: y[%d] = %f\n", global_row, sum);
+    // Scrittura del risultato
+    y[global_row] = sum;
 }
-
-__global__ void matvec_flatell_kernel2(FlatELLMatrix *dMat, Vector *x, Vector *y, int total_rows)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    // Calcola il numero totale di elementi non nulli potenziali (flatELL)
-    int total_elements = 0;
-    for (int i = 0; i < dMat->numBlocks; ++i) {
-        total_elements += dMat->block_rows[i] * dMat->block_nnz[i];
-    }
-
-    if (tid >= total_elements) return;
-
-    // Trova a quale blocco appartiene questo elemento
-    int acc = 0;
-    int b = 0;
-    while (b < dMat->numBlocks) {
-        int block_elems = dMat->block_rows[b] * dMat->block_nnz[b];
-        if (tid < acc + block_elems) break;
-        acc += block_elems;
-        b++;
-    }
-
-    if (b >= dMat->numBlocks) return;
-
-    // Calcoli locali all'interno del blocco b
-    int local_tid = tid - acc;
-    int rows_in_block = dMat->block_rows[b];
-    int maxnz = dMat->block_nnz[b];
-    int offset = dMat->block_offsets[b];
-
-    int local_row = local_tid % rows_in_block;
-    int j = local_tid / rows_in_block;
-
-    if (j >= maxnz) return;
-
-    int idx = offset + j * rows_in_block + local_row;
-    int col = dMat->col_indices_flat[idx];
-
-    if (col >= 0) {
-        double product = dMat->values_flat[idx] * x->vettore[col];
-
-        // Calcola la riga globale in base ai blocchi precedenti
-        int global_row = 0;
-        for (int k = 0; k < b; ++k) {
-            global_row += dMat->block_rows[k];
-        }
-        global_row += local_row;
-
-        atomicAdd(&y->vettore[global_row], product);
-        //printf("Kernel: y[%d] = %f\n", global_row, product);
-    }
-
-    
-}
-
-

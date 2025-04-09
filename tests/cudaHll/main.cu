@@ -152,6 +152,7 @@ int main(int argc, char *argv[] ) {
     
   
     double *d_vettore;
+    int righex=vect->righe;
     cudaMalloc((void**)&d_vettore, sizeof(double) * vect->righe);
     cudaMemcpy(d_vettore, vect->vettore, sizeof(double) * vect->righe, cudaMemcpyHostToDevice);
 
@@ -178,15 +179,45 @@ int main(int argc, char *argv[] ) {
     cudaMemcpy(d_result, result, sizeof(struct Vector), cudaMemcpyHostToDevice);
 
    
-
+   int *d_numBlocks;
+    cudaMalloc(&d_numBlocks, sizeof(int));
+    cudaMemcpy(d_numBlocks, &cudaHllMat->numBlocks, sizeof(int), cudaMemcpyHostToDevice);
    
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (total_rows + threadsPerBlock - 1) / threadsPerBlock;
+    
+   
+   
+
+    int block_size = 32;
+    int num_threads = matHll->numBlocks * hack;
+    int grid_size = (num_threads + block_size - 1) / block_size;
+
+    printf("\nrighe: %d", righex);
+
 
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
-    matvec_flatell_kernel2<<<blocksPerGrid, threadsPerBlock>>>(d_mat,d_vect,d_result,total_rows);
+
+
+    matvec_flatell_kernel2_reduction<<<grid_size, block_size,num_threads * sizeof(double)>>>(d_mat,d_vettore,d_result_vettore,hack);
+
+    //matvec_flatell_kernel4<<<grid_size, block_size, sharedMemSize>>>(d_mat,d_vettore,d_result_vettore,hack,righex);
+
+   /*
+   matvec_flatell_kernel3_safe<<<grid_size, block_size>>>(
+    d_values_flat,
+    d_col_indices_flat,
+    d_block_offsets,
+    d_block_nnz,  
+    d_block_rows,
+    d_vettore,
+    d_result_vettore,
+    d_numBlocks,  
+    hack,
+    vect->righe);
+   
+   */
+
     cudaEventRecord(stop, 0);
 
     cudaEventSynchronize(stop);
@@ -241,15 +272,18 @@ int main(int argc, char *argv[] ) {
     
 
 
-    
+   for(int i=0;i < (result2->righe) ;i++){
 
+        if(result2->vettore[i]!=resultSerial->vettore[i]){
+            printf("\n: valori diversi (%lf vs %lf)\n", result2->vettore[i], resultSerial->vettore[i]);
+        }
+
+   }
     
     int check=areVectorsEqual(result2,resultSerial);
     if(check!=0){
-        printf("the vectorsa are different");
+        printf("the vector are different");
     }
-
-
     
 
     cudaError err = cudaGetLastError();

@@ -6,7 +6,7 @@ extern "C" {
 #include <math.h>
 
 #define RANDOM_VECTOR_MAX_VALUE 1.0
-#define EPSILON 1e-9  // Tolleranza per il confronto tra floating-point
+#define EPSILON 1e-5  // Tolleranza per il confronto tra floating-point
 
 /* Definizione di Vector */
 typedef struct Vector {

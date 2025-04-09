@@ -147,6 +147,7 @@ run-test-cudaHll:
         exit 1; \
     fi 
 	cd $(BUILD_DIR_OPEN_CUDAHLL) && ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
+	
 
 
 build-test-cudaHll:
@@ -155,12 +156,19 @@ build-test-cudaHll:
 	cd $(BUILD_DIR_OPEN_CUDAHLL) && cmake --build .
 	#cd $(BUILD_DIR_OPEN_CUDAHLL) && ./Main
 
+
+
 build-test-cudaHll2:
 	module load cuda/12.8 && \
 	mkdir -p $(BUILD_DIR_OPEN_CUDAHLL) && \
 	cd $(BUILD_DIR_OPEN_CUDAHLL) && \
 	cmake -DCMAKE_CUDA_ARCHITECTURES=75 $(CURRENT_DIR)/$(TEST_OPEN_CUDAHLL) && \
 	cmake --build .	
+
+
+
+
+
 
 
 
