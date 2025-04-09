@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
+set(CMAKE_CUDA_ARCHITECTURES "native")  # Auto-detect GPU architecture
+
 project(K9 LANGUAGES CUDA CXX)
 enable_language(CUDA)
 find_package(CUDA REQUIRED)
@@ -7,7 +9,6 @@ find_package(CUDA REQUIRED)
 set(CMAKE_CUDA_STANDARD 17)  # Use C++17 for CUDA code
 
 # Set the CUDA compute architecture for RTX 40 series (Ada Lovelace)
-set(CMAKE_CUDA_ARCHITECTURES 80)  # sm_80 for RTX 40 series
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Add mat_lib_build from subdirectory

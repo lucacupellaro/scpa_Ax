@@ -183,7 +183,7 @@ void matSimpleMult(char *file){
     
     printf("ALLOCATED EVERYTHING\n");
     int N = vector1->righr;
-    int threadsPerBlock = 16;
+    int threadsPerBlock =32;
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
     CUDA_TIME((csr_matvec_mul<<<blocksPerGrid, threadsPerBlock>>>(matG, vector1G, resultG)),csrMatrice->nz);
     CUDA_CHECK(cudaDeviceSynchronize());
