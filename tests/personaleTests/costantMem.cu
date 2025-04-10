@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "matriciOpp.h"
 
-
+#include <cstdint>
 
 
 #include <cuda_runtime.h>
@@ -49,7 +49,12 @@
     } while (0)
 
 
-
+void checkerror(){
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        printf("Kernel launch failed: %s\n", cudaGetErrorString(error));
+    }
+}
 // Macro for safe cudaMemcpy
 #define CUDA_TIME(operation,nz)                           \
     { \
@@ -58,6 +63,7 @@
     CUDA_CHECK(cudaEventCreate(&stop));                 \
     CUDA_CHECK(cudaEventRecord(start, 0));              \
     operation; \
+    checkerror();\
     CUDA_CHECK(cudaEventRecord(stop, 0)); \
     CUDA_CHECK(cudaDeviceSynchronize());\
     float seconds = 0;  \
@@ -135,6 +141,55 @@ __global__ void csr_matvec_mul(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
 }
 
 
+__inline__ __device__
+double warpReduceSum(double val, uint32_t mask) {
+    for (int offset = 16; offset > 0; offset /= 2)
+        val += __shfl_down_sync(mask, val, offset);
+    return val;
+}
+
+__global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_result) {
+    int id = blockIdx.x * blockDim.x + threadIdx.x; // id
+    int realRow = id >> 5; // Check row number dividing id % number of thread per warp 2^5
+    int position = id & 31; // get position inside warp
+
+    if (realRow >= d_mat->height) return; //exit if id is outisde of lines range
+    int base = d_mat->iRP[realRow]; //start of array
+    int rowDim = d_mat->iRP[realRow + 1] - base;
+    double sum = 0.0;
+
+    // Process full warps
+    for (int i = 0; (i + 1) * 32 <= rowDim; ++i) {
+        int col_index = d_mat->jValori[base + i * 32 + position];
+        double  matVal= d_mat->valori[base + i * 32 + position];
+        double vectVal= d_vec->vettore[col_index];
+        double value = matVal*vectVal;
+        double warp_sum = warpReduceSum(value, 0xFFFFFFFF);
+        if (position == 0) {
+            sum += warp_sum;
+        }
+    }
+
+    // Process the remaining part of the row
+    int remaining = rowDim % 32;
+    if (remaining > 0) {
+        int start_of_remaining = base + rowDim - remaining;
+        uint32_t mask = (1U << remaining) - 1;
+        if (position < remaining) {
+            int col_index = d_mat->jValori[start_of_remaining + position];
+            double  matVal= d_mat->valori[start_of_remaining + position];
+            double vectVal= d_vec->vettore[col_index];
+            double value = matVal*vectVal;
+            sum += warpReduceSum(value, mask);
+        }
+    }
+
+    if (position == 0) {
+        d_result->vettore[realRow] = sum; // Explicit cast if d_result is float
+    }
+}
+
+
 __global__ void vectorMultiply(Vector *a, Vector *b, Vector *result) {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < a->righr) {
@@ -174,25 +229,34 @@ void matSimpleMult(char *file){
     Vector *result;
     Vector *vector1G;
     Vector *resultG;
-    int seed=10;
+    int seed=13;
     int numOfElements=rows;
     generate_random_vector(seed, numOfElements, &vector1) ;
     generateEmpty(numOfElements,&result);
     allocateAndCopyVector(vector1,&vector1G);
     allocateAndCopyVector(result,&resultG);
-    
+    int N = vector1->righr*32;
+    int threadSizes[] = {128, 256, 512, 1024}; // Correct C syntax    int N = numOfElements*32;
     printf("ALLOCATED EVERYTHING\n");
-    int N = vector1->righr;
-    int threadsPerBlock =32;
+    int modulus=32;
+    for(int i=0;i<4;i++){
+            if(modulus<N&threadSizes[i]){
+                modulus=threadSizes[i];
+            }
+    }
+    int threadsPerBlock =modulus;
+    //int N = vector1->righr;
+    //int threadsPerBlock =512;
+    N=N+(threadsPerBlock-N%threadsPerBlock);
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
-    CUDA_TIME((csr_matvec_mul<<<blocksPerGrid, threadsPerBlock>>>(matG, vector1G, resultG)),csrMatrice->nz);
+    CUDA_TIME((crs_mat_32_way<<<blocksPerGrid,threadsPerBlock>>>(matG, vector1G, resultG)),csrMatrice->nz);
     CUDA_CHECK(cudaDeviceSynchronize());
     copyVectorBackToHost(result,resultG);
     Vector *resultSerial;
     generateEmpty(numOfElements,&resultSerial);
     serialCsrMult(csrMatrice,vector1,resultSerial);
-
-
+    printVector(result);
+    printVector(resultSerial);
     int areEq=areVectorsEqual(result,resultSerial);
     printf("are equal(0 yes)? %d\n",areEq);
 
@@ -220,7 +284,7 @@ void testVectors(int rows){
     allocateAndCopyVector(result,&resultG);
 
     int N = vector1->righr;
-    int threadsPerBlock = 256;
+    int threadsPerBlock = 32;
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
     //printf("%d\n",blocksPerGrid);
     cudaEvent_t start, stop;

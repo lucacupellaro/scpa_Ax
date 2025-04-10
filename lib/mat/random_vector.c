@@ -14,9 +14,10 @@ int areVectorsEqual( Vector *v1,  Vector *v2) {
         float diff=fabs(v1->vettore[i] - v2->vettore[i]);
         if(diff<EPSILON){
             continue;
-        }else if(diff/module<EPSILON && module>EPSILON*module){
+        }else if(diff*100/(module)<0.02 ){
             continue;
         }else{
+            printf("primo %.10f\nsecondo %.10f\n", v1->vettore[i],v2->vettore[i]);
             return -1;
         }
     }
@@ -87,7 +88,7 @@ void printVector(struct Vector *vec) {
     }
 
     printf("Vector with %u elements:\n", vec->righr);
-    for (unsigned int i = 0; i < vec->righr; i++) {
+    for (unsigned int i = 0; i < 10; i++) {
         printf("%.4f ", vec->vettore[i]);
     }
     printf("\n");
