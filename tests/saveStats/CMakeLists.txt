@@ -13,8 +13,8 @@ add_subdirectory(../../lib/mat mat_lib_build)
 
 # Compile `matLib` with OpenMP
 if(OpenMP_C_FOUND)
-    target_link_libraries(matLib PUBLIC OpenMP::OpenMP_C)
-    target_compile_options(matLib PRIVATE -fopenmp)
+    target_link_libraries(matlib PUBLIC OpenMP::OpenMP_C)
+    target_compile_options(matlib PRIVATE -fopenmp)
 endif()
 
 # Create the `Main` executable
@@ -27,7 +27,7 @@ if(OpenMP_C_FOUND)
 endif()
 
 # Link `matLib` to `Main`
-target_link_libraries(Main PRIVATE matLib)
+target_link_libraries(Main PRIVATE matlib)
 
 # Include `matLib` headers
 target_include_directories(Main PRIVATE ../../lib/mat)

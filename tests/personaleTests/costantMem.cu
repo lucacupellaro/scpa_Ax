@@ -63,7 +63,6 @@ void checkerror(){
     CUDA_CHECK(cudaEventCreate(&stop));                 \
     CUDA_CHECK(cudaEventRecord(start, 0));              \
     operation; \
-    checkerror();\
     CUDA_CHECK(cudaEventRecord(stop, 0)); \
     CUDA_CHECK(cudaDeviceSynchronize());\
     float seconds = 0;  \
@@ -142,9 +141,9 @@ __global__ void csr_matvec_mul(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
 
 
 __inline__ __device__
-double warpReduceSum(double val, uint32_t mask) {
+double warpReduceSum(double val) {
     for (int offset = 16; offset > 0; offset /= 2)
-        val += __shfl_down_sync(mask, val, offset);
+        val += __shfl_down_sync(0xFFFFFFFF, val, offset);
     return val;
 }
 
@@ -158,32 +157,24 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
     int rowDim = d_mat->iRP[realRow + 1] - base;
     double sum = 0.0;
 
-    // Process full warps
     for (int i = 0; (i + 1) * 32 <= rowDim; ++i) {
         int col_index = d_mat->jValori[base + i * 32 + position];
         double  matVal= d_mat->valori[base + i * 32 + position];
         double vectVal= d_vec->vettore[col_index];
-        double value = matVal*vectVal;
-        double warp_sum = warpReduceSum(value, 0xFFFFFFFF);
-        if (position == 0) {
-            sum += warp_sum;
-        }
+        sum += matVal*vectVal;
     }
 
-    // Process the remaining part of the row
     int remaining = rowDim % 32;
     if (remaining > 0) {
         int start_of_remaining = base + rowDim - remaining;
-        uint32_t mask = (1U << remaining) - 1;
         if (position < remaining) {
             int col_index = d_mat->jValori[start_of_remaining + position];
             double  matVal= d_mat->valori[start_of_remaining + position];
             double vectVal= d_vec->vettore[col_index];
-            double value = matVal*vectVal;
-            sum += warpReduceSum(value, mask);
+            sum += matVal*vectVal;
         }
     }
-
+    sum = warpReduceSum(sum);
     if (position == 0) {
         d_result->vettore[realRow] = sum; // Explicit cast if d_result is float
     }
@@ -244,7 +235,7 @@ void matSimpleMult(char *file){
                 modulus=threadSizes[i];
             }
     }
-    int threadsPerBlock =modulus;
+    int threadsPerBlock =512;
     //int N = vector1->righr;
     //int threadsPerBlock =512;
     N=N+(threadsPerBlock-N%threadsPerBlock);
