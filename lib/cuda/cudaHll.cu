@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define WARP_SIZE 32
+
 #define DEBUG 0
 
 int convertHLLToFlatELL(MatriceHLL **H, FlatELLMatrix **flatMat)
@@ -136,7 +138,6 @@ __global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, double *x, double *y,
 
     // Moltiplicazione matrice-vettore per la riga corrente
     for (int j = 0; j < max_nnz; j++) {
-
         int col = dMat->col_indices_flat[block_start + j * rows_in_block + local_row];
         if (col >= 0) {
             sum += dMat->values_flat[block_start + j * rows_in_block + local_row] * x[col];
@@ -147,10 +148,12 @@ __global__ void matvec_flatell_kernel(FlatELLMatrix *dMat, double *x, double *y,
 }
 
 
-__global__ void matvec_flatell_kernel2_reduction(FlatELLMatrix *dMat, double *x, double *y, int hack_size) {
-    int global_row = blockIdx.x * blockDim.x + threadIdx.x;  // Indice globale della riga
+__global__ void matvec_flatell_kernel_2(FlatELLMatrix *dMat, double *x, double *y, int hack_size, int N) {
+    extern __shared__ double shared_x[];
+    int tid = threadIdx.x;
+    int global_row = blockIdx.x * blockDim.x + tid;
+    int block_size = blockDim.x;
 
-    // Verifica se il thread è all'interno del range
     if (global_row >= dMat->numBlocks * hack_size) return;
 
     // Trova a quale blocco appartiene questa riga
@@ -164,10 +167,12 @@ __global__ void matvec_flatell_kernel2_reduction(FlatELLMatrix *dMat, double *x,
     int local_row = global_row % hack_size;
     if (local_row >= rows_in_block) return;
 
-    // Memoria condivisa per la somma locale
-    extern __shared__ double partial_sum[];  // Usa memoria condivisa dinamica, dimensione passata al kernel
+    // Caricamento di una porzione di x in memoria condivisa
+    if (tid < block_size && tid < N) {
+        shared_x[tid] = x[tid];
+    }
+    __syncthreads();
 
-    // Ogni thread inizia con una somma parziale
     double sum = 0.0;
     int max_nnz = dMat->block_nnz[block_id];  // NNZ massimo per riga nel blocco
 
@@ -175,77 +180,60 @@ __global__ void matvec_flatell_kernel2_reduction(FlatELLMatrix *dMat, double *x,
     for (int j = 0; j < max_nnz; j++) {
         int col = dMat->col_indices_flat[block_start + j * rows_in_block + local_row];
         if (col >= 0) {
-            sum += dMat->values_flat[block_start + j * rows_in_block + local_row] * x[col];
+            // Accesso a x dalla shared memory se l'indice è nel range caricato
+            double x_val = (col < block_size && col < N) ? shared_x[col] : x[col];
+            sum += dMat->values_flat[block_start + j * rows_in_block + local_row] * x_val;
         }
     }
 
-    // Memorizziamo il risultato parziale nella memoria condivisa
-    partial_sum[threadIdx.x] = sum;
-    __syncthreads(); // Sincronizzazione di tutti i thread del blocco
-
-    // Reduce dei risultati parziali all'interno del blocco
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
-        if (threadIdx.x < stride) {
-            partial_sum[threadIdx.x] += partial_sum[threadIdx.x + stride];
-        }
-        __syncthreads();  // Sincronizzazione di tutti i thread prima della successiva riduzione
-    }
-
-    // Il thread 0 scrive il risultato finale del blocco in y
-    if (threadIdx.x == 0) {
-        y[global_row] = partial_sum[0];
-    }
+    y[global_row] = sum;
 }
 
 
 
 
-__global__ void matvec_flatell_kernel3_safe(
-    const double *values_flat,
-    const int *col_indices_flat,
-    const int *block_offsets,
-    const int *block_nnz,
-    const int *block_rows,
-    const double *x,
-    double *y,
-    const int *numBlocks,  // Puntatore a int
-    int hack_size,
-    int x_length) 
-{
-    // Carica numBlocks dalla memoria globale
-    const int nBlocks = *numBlocks;
-    
-    int global_row = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    // Verifica se il thread è all'interno del range
-    if (global_row >= nBlocks * hack_size) return;
+__global__ void matvec_flatell_kernel_v4(FlatELLMatrix *dMat, double *x, double *y, int hack_size,int total_row) {
 
-    // Trova a quale blocco appartiene questa riga
-    int block_id = global_row / hack_size;
-    if (block_id >= nBlocks) return;
+    int thread_id = blockIdx.x * blockDim.x + threadIdx.x;  // ID del thread
+    int warp_id = thread_id >> 5;  // Ogni warp lavora su una riga (thread_id / 32)
+    int lane = thread_id & 31;     // ID del thread dentro la warp (0-31)
 
-    // Carica i metadati del blocco
-    int block_start = block_offsets[block_id];
-    int rows_in_block = block_rows[block_id];
 
-    // Riga locale nel blocco
-    int local_row = global_row % hack_size;
-    if (local_row >= rows_in_block) return;
 
+    if (warp_id >= total_row) return;
+
+    // Calcolare a quale hack appartiene questa riga (ogni hack corrisponde a un blocco)
+    int block_id = warp_id / hack_size;
+    int local_row = warp_id % hack_size;
+    int rows_in_block = dMat->block_rows[block_id];
+
+    if (local_row >= rows_in_block) return;  // Assicurarsi che non si esca dai limiti della riga
+
+    int block_start = dMat->block_offsets[block_id];  // Offset del blocco
+    int max_nnz_per_row = dMat->block_nnz[block_id]; // Max NNZ per riga nel blocco
     double sum = 0.0;
-    int max_nnz = block_nnz[block_id];  // NNZ massimo per riga nel blocco
 
-    // Moltiplicazione matrice-vettore per la riga corrente
-    for (int j = 0; j < max_nnz; j++) {
-        int idx = block_start + j * rows_in_block + local_row;
-        int col = col_indices_flat[idx];
+    for (int j = lane; j < max_nnz_per_row; j += 32) {
         
-        // Aggiunto controllo sui limiti di x rispetto alla versione originale
-        if (col >= 0 && col < x_length) {
-            sum += values_flat[idx] * x[col];
+        int flat_idx = block_start + j * rows_in_block + local_row;
+
+        int col = dMat->col_indices_flat[flat_idx];
+
+        // Controlla se è un padding (spesso indicato con col < 0)
+        if (col >= 0) {
+            double val = dMat->values_flat[flat_idx];
+            sum += val * x[col]; // Accumula il prodotto
         }
     }
 
-    // Scrittura del risultato
-    y[global_row] = sum;
+    int width=32;
+    // Riduzione a livello di warp per sommare i risultati parziali
+    for (int offset = width >> 1; offset > 0; offset >>= 1) {
+        sum += __shfl_down_sync(0xFFFFFFFF, sum, offset,width);
+    }
+
+    // Il primo thread della warp scrive il risultato finale
+    if (lane == 0) {
+        y[warp_id] = sum;
+    }
 }

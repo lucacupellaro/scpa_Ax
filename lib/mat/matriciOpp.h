@@ -14,7 +14,7 @@ typedef struct Vector {
     double *vettore;
 } Vector;
 
-int areVectorsEqual(const Vector *v1, const Vector *v2);
+int areVectorsEqual( Vector *v1,  Vector *v2);
 int generate_random_vector(int seed, unsigned int righe, Vector **pointerToVector);
 int freeRandom(Vector **pointerToVector);
 int generateEmpty(unsigned int rows, Vector **vettore);

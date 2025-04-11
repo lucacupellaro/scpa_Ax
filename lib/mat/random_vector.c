@@ -4,12 +4,9 @@
 #include "matriciOpp.h"
 
 
-int areVectorsEqual(const Vector *v1, const Vector *v2) {
+int areVectorsEqual( Vector *v1,  Vector *v2) {
     // Check if both vectors have the same number of rows
     if (v1->righe != v2->righe) {
-        
-        printf("\nVettore1: %lf ",v1->vettore[1]);
-        printf("\nVettore2: %lf ",v2->vettore[1]);
         return -1;
     }
 
@@ -19,9 +16,10 @@ int areVectorsEqual(const Vector *v1, const Vector *v2) {
         float diff=fabs(v1->vettore[i] - v2->vettore[i]);
         if(diff<EPSILON){
             continue;
-        }else if(diff/module<EPSILON && module>EPSILON*module){
+        }else if(diff*100/(module)<0.02 ){
             continue;
         }else{
+            printf("primo %.10f\nsecondo %.10f\n", v1->vettore[i],v2->vettore[i]);
             return -1;
         }
     }

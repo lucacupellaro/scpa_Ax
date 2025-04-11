@@ -185,38 +185,31 @@ int main(int argc, char *argv[] ) {
    
     
    
-   
-
-    int block_size = 32;
+   /*
+    int block_size = 128;
     int num_threads = matHll->numBlocks * hack;
     int grid_size = (num_threads + block_size - 1) / block_size;
+    size_t shared_mem_size = block_size * sizeof(double);
+   */
 
-    printf("\nrighe: %d", righex);
+   
 
+    int threadsPerBlock = 32;
+    int numBlocks = matHll->totalRows;
+   
+
+    printf("\ntal rows---:%d",matHll->totalRows);
 
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
 
 
-    matvec_flatell_kernel<<<grid_size, block_size>>>(d_mat,d_vettore,d_result_vettore,hack);
+    //matvec_flatell_kernel<<<grid_size, block_size>>>(d_mat,d_vettore,d_result_vettore,hack);
 
-    //matvec_flatell_kernel4<<<grid_size, block_size, sharedMemSize>>>(d_mat,d_vettore,d_result_vettore,hack,righex);
+    //matvec_flatell_kernel_2<<<grid_size, block_size,shared_mem_size>>>(d_mat,d_vettore,d_result_vettore,hack,block_size);
 
-   /*
-   matvec_flatell_kernel3_safe<<<grid_size, block_size>>>(
-    d_values_flat,
-    d_col_indices_flat,
-    d_block_offsets,
-    d_block_nnz,  
-    d_block_rows,
-    d_vettore,
-    d_result_vettore,
-    d_numBlocks,  
-    hack,
-    vect->righe);
-   
-   */
+    matvec_flatell_kernel_v4<<<numBlocks, threadsPerBlock>>>(d_mat,d_vettore,d_result_vettore,hack,matHll->totalRows);
 
     cudaEventRecord(stop, 0);
 
@@ -271,13 +264,20 @@ int main(int argc, char *argv[] ) {
     }
     
     
-     for(int i=0;i < (result2->righe) ;i++){
+    /*
+    
+    for(int i=0;i < (result2->righe) ;i++){
 
         if(result2->vettore[i]!=resultSerial->vettore[i]){
             printf("\n: valori diversi (%lf vs %lf)\n", result2->vettore[i], resultSerial->vettore[i]);
         }
 
+       // if(i>100) break;
+
    }
+    */
+    
+    
     
   
     
