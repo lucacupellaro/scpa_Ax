@@ -138,12 +138,14 @@ int main(int argc, char *argv[]) {
         generateEmpty(rows, &resultV1);
         initializeCsvEntry(&all_results[csr_serial_offset], matrix_names[current_matrix], "csr", "serial", 1, 0, iterations);
 
+        printf("v1 Generato. \n");
+
         double time = 0;
         for (int i = 0; i < iterations; i++) {
             csrMultWithTime(&serialCsrMult, csrMatrice, vectorR, resultV1, &time);
             all_results[csr_serial_offset].measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
-        free(&resultV1);
+        freeRandom(&resultV1);
 
         printf("CSR serial multiplication complete.\n"); // Debug
 
@@ -155,7 +157,7 @@ int main(int argc, char *argv[]) {
             csrMultWithTime(&parallelCsrMult, csrMatrice, vectorR, resultV2, &time);
             all_results[csr_parallel_offset].measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
-        free(&resultV2);
+        freeRandom(&resultV2);
 
         printf("CSR parallel multiplication complete.\n"); // Debug
 
@@ -169,7 +171,7 @@ int main(int argc, char *argv[]) {
             hllMultWithTime(&serialMultiplyHLL, matHll, vectorR, resultV3, &time);
             all_results[hll_serial_offset].measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
-        free(&resultV3);
+        freeRandom(&resultV3);
 
         printf("HLL serial multiplication complete.\n"); // Debug
 
@@ -181,14 +183,14 @@ int main(int argc, char *argv[]) {
             hllMultWithTime(&openMpMultiplyHLL, matHll, vectorR, resultV4, &time);
             all_results[hll_parallel_offset].measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
-        free(&resultV4);
+        freeRandom(&resultV4);
 
         printf("HLL parallel multiplication complete.\n"); // Debug
 
-        free(&vectorR);
-        free(&matHll);
-        free(&mat);
-        free(&csrMatrice);
+        freeRandom(&vectorR);
+        freeMatHll(&matHll);
+        freeMatRaw(&mat);
+        freeMatCsr(&csrMatrice);
 
         printf("Memory freed for current matrix.\n"); // Debug
     }
@@ -209,3 +211,4 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
