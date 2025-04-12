@@ -84,6 +84,7 @@ int hllMultWithTime(int (*multiplayer)(MatriceHLL *, Vector *, Vector *),
                     MatriceHLL *hll, Vector *vec, Vector *result, double *execTime);
 int openMpMultiplyHLL(MatriceHLL *mat, Vector *vec, Vector *result);
 int printHLL(MatriceHLL **hllP);
+int freeMatHll(struct MatriceHLL **matricePointer);
 #ifdef __cplusplus
 }
 #endif
