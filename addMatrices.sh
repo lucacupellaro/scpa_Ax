@@ -10,4 +10,5 @@ mkdir -p mat
 for name in $names; do
     src=$(realpath "/data/matrici/$name")
     ln -s "$src" "mat/$name"
+    echo "$name" # Print each name on a new line
 done

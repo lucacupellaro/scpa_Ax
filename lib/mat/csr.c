@@ -96,7 +96,7 @@ int __attribute__((optimize("O3"))) parallelCsrMult(struct MatriceCsr *csr, stru
     for (int i = 0; i < nrows; i++)
     {
         int thread_id = omp_get_thread_num();
-        printf("Hello from thread %d\n", thread_id);
+        //printf("Hello from thread %d\n", thread_id);
 
         double sum = 0.0;
         for (int j = csr->iRP[i]; j < csr->iRP[i + 1]; j++)
