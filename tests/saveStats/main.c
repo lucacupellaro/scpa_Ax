@@ -162,6 +162,8 @@ int main(int argc, char *argv[]) {
         printf("CSR parallel multiplication complete.\n"); // Debug
 
         struct MatriceHLL *matHll;
+        hack=mat->nz/20;
+
         convertRawToHll(mat, hack, &matHll);
         struct Vector *resultV3;
         generateEmpty(rows, &resultV3);
