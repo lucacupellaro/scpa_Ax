@@ -241,11 +241,11 @@ __global__ void matvec_flatell_kernel_v3(FlatELLMatrix *dMat, double *x, double 
 
 
 
-float invokeKernel1(struct Vector *vect,
+int invokeKernel1(struct Vector *vect,
     struct Vector *result,
     struct Vector *result2,
     struct Vector *resultSerial,
-    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack ){
+    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack, double *time ){
 
     cudaEvent_t start,stop;
 
@@ -335,9 +335,6 @@ float invokeKernel1(struct Vector *vect,
     
     double time_sec = time_ms / 1000.0;
 
-    double totalFLOPs = 2.0 * cudaHllMat->total_values;
-
-    double gflops = totalFLOPs / (time_sec * 1e9);
 
 
     cudaError memcopy;
@@ -357,26 +354,13 @@ float invokeKernel1(struct Vector *vect,
     cudaFree(d_block_nnz);
     cudaFree(d_block_rows);
 
-   
+
+    *time=time_sec;
   
    
     vect->vettore=temp;
 
-    double time2=0;
 
-    int multResult = hllMultWithTime(&serialMultiplyHLL,matHll, vect, resultSerial, &time2);
-    if (multResult != 0)
-    {
-        printf("Error in serialMultiply, error code: %d\n", multResult);
-        return multResult;
-    }
-    
-    
-    int check=areVectorsEqual(result2,resultSerial);
-    if(check!=0){
-        printf("the vector are different");
-    }
-    
 
     cudaError err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -384,15 +368,15 @@ float invokeKernel1(struct Vector *vect,
         return -1;
     }
 
-    return gflops;
+    return 0;
   
 }
 
-float invokeKernel2(struct Vector *vect,
+int invokeKernel2(struct Vector *vect,
     struct Vector *result,
     struct Vector *result2,
     struct Vector *resultSerial,
-    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack ){
+    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack,double* time){
 
     for(int i=0;i<result->righe;i++){
         if(result->vettore[i]!=0){
@@ -463,12 +447,6 @@ float invokeKernel2(struct Vector *vect,
     cudaMalloc(&d_numBlocks, sizeof(int));
     cudaMemcpy(d_numBlocks, &cudaHllMat->numBlocks, sizeof(int), cudaMemcpyHostToDevice);
    
-    
-   
- 
-
-    
-
 
     int block_size = 32;
     int num_threads = matHll->numBlocks * hack;
@@ -495,9 +473,6 @@ float invokeKernel2(struct Vector *vect,
     
     double time_sec = time_ms / 1000.0;
 
-    double totalFLOPs = 2.0 * cudaHllMat->total_values;
-
-    double gflops = totalFLOPs / (time_sec * 1e9);
 
     cudaError memcopy;
     memcopy=cudaMemcpy(result2->vettore, d_result_vettore, result2->righe * sizeof(double), cudaMemcpyDeviceToHost);
@@ -516,59 +491,25 @@ float invokeKernel2(struct Vector *vect,
     cudaFree(d_block_nnz);
     cudaFree(d_block_rows);
 
-   
-  
-   
-    vect->vettore=temp;
-
-    double time2=0;
-
-    
-    int multResult = hllMultWithTime(&serialMultiplyHLL,matHll, vect, resultSerial, &time2);
-    if (multResult != 0)
-    {
-        printf("Error in serialMultiply, error code: %d\n", multResult);
-        return multResult;
-    }
-    
-  /*
-   for(int i=0;i < (result2->righe) ;i++){
-
-        if(result2->vettore[i]!=resultSerial->vettore[i]){
- 
-
-            printf("\n: valori diversi (%lf vs %lf)\n", result2->vettore[i], resultSerial->vettore[i]);
- 
-
-        }
-   }
-  
-  */
-    
-   
-    
-    int check=areVectorsEqual(result2,resultSerial);
-    if(check!=0){
-        printf("the vector are different");
-    }
-
+    *time=time_sec;
 
     cudaError err = cudaGetLastError();
     if (err != cudaSuccess) {
         fprintf(stderr, "Errore nel lancio del kernel: %s\n", cudaGetErrorString(err));
         return -1;
     }
+  
 
-    return gflops;
+  
   
 }
 
 
-float invokeKernel3(struct Vector *vect,
+int invokeKernel3(struct Vector *vect,
     struct Vector *result,
     struct Vector *result2,
     struct Vector *resultSerial,
-    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack ){
+    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack,double* time ){
 
     cudaEvent_t start,stop;
 
@@ -656,17 +597,7 @@ float invokeKernel3(struct Vector *vect,
     
     double time_sec = time_ms / 1000.0;
 
-    double totalFLOPs = 2.0 * cudaHllMat->total_values;
-
-    double gflops = totalFLOPs / (time_sec * 1e9);
-
-    /*
-    printf("Tempo medio del kernel: %f s\n", time_sec);
-    printf("GFLOPS: %lf\n", gflops);
-    */
     
-
-
     cudaError memcopy;
     memcopy=cudaMemcpy(result2->vettore, d_result_vettore, result2->righe * sizeof(double), cudaMemcpyDeviceToHost);
     if (memcopy!=cudaSuccess) {
@@ -684,23 +615,9 @@ float invokeKernel3(struct Vector *vect,
     cudaFree(d_block_nnz);
     cudaFree(d_block_rows);
 
-    vect->vettore=temp;
+    *time=time_sec;
 
-    double time2=0;
-
-    int multResult = hllMultWithTime(&serialMultiplyHLL,matHll, vect, resultSerial, &time2);
-    if (multResult != 0)
-    {
-        printf("Error in serialMultiply, error code: %d\n", multResult);
-        return multResult;
-    }
-    
-    
-    int check=areVectorsEqual(result2,resultSerial);
-    if(check!=0){
-        printf("the vector are different");
-    }
-    
+   
 
     cudaError err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -708,6 +625,5 @@ float invokeKernel3(struct Vector *vect,
         return -1;
     }
 
-    return gflops;
   
 }

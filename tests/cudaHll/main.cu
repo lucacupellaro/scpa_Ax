@@ -101,18 +101,44 @@ int main(int argc, char *argv[] ) {
         total_rows += cudaHllMat->block_rows[i];
     }
 
+    double time=0;
+    double totalFLOPs=0;
+    double gflops=0;
+    int result_=0;
+
     if (k == 1) {
         printf("\n avvio kernel 1:\n");
-        float gflop1 = invokeKernel1(vect, result, result2, resultSerial, cudaHllMat, matHll, hack);
-        printf("GFLOPS Kernel 1: %lf\n", gflop1);
+        result_ = invokeKernel1(vect, result, result2, resultSerial, cudaHllMat, matHll, hack, &time);
+
+        printf("tempo ritornato:\n %f",time);
+
+        if(result_!=0){
+            printf("kernel 1 crashed\n");
+            exit;
+        }
+        totalFLOPs = 2.0 * cudaHllMat->total_values;
+        gflops = totalFLOPs / (time * 1e9);
+        printf("GFLOPS Kernel 1: %lf\n", gflops);
     } else if (k == 2) {
         printf("\n avvio kernel 2:\n");
-        float gflop2 = invokeKernel2(vect, result, result2, resultSerial, cudaHllMat, matHll, hack);
-        printf("GFLOPS Kernel 2: %lf\n", gflop2);
+        result_ = invokeKernel2(vect, result, result2, resultSerial, cudaHllMat, matHll, hack,&time);
+        if(result_!=0){
+            printf("kernel 2 crashed");
+            exit;
+        }
+        totalFLOPs = 2.0 * cudaHllMat->total_values;
+        gflops = totalFLOPs / (time * 1e9);
+        printf("GFLOPS Kernel 2: %lf\n", gflops);
     } else if (k == 3) {
         printf("\n avvio kernel 3:\n");
-        float gflop3 = invokeKernel3(vect, result, result2, resultSerial, cudaHllMat, matHll, hack);
-        printf("GFLOPS Kernel 3: %lf\n", gflop3);
+        result_ = invokeKernel3(vect, result, result2, resultSerial, cudaHllMat, matHll, hack,&time);
+        if(result_!=0){
+            printf("kernel 3 crashed");
+            exit;
+        }
+        totalFLOPs = 2.0 * cudaHllMat->total_values;
+        gflops = totalFLOPs / (time * 1e9);
+        printf("GFLOPS Kernel 3: %lf\n", gflops);
     } else {
         printf("valore non valido\n");
         exit(1); 
