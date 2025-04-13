@@ -126,14 +126,14 @@ void copyVectorBackToHost(Vector *cpu, Vector *gpu) {
     Vector temp;
     CUDA_MEMCPY(&temp, gpu, sizeof(Vector), cudaMemcpyDeviceToHost);
 
-    size_t size_vettore = cpu->righr * sizeof(double);
+    size_t size_vettore = cpu->righe * sizeof(double);
     CUDA_MEMCPY(cpu->vettore, temp.vettore, size_vettore, cudaMemcpyDeviceToHost);
 }
 void allocateAndCopyVector(Vector *cpu, Vector **gpu) {
     CUDA_CHECK(cudaMalloc((void**)gpu, sizeof(Vector)));
 
     double *d_vettore = NULL;
-    size_t size_vettore = cpu->righr * sizeof(double);
+    size_t size_vettore = cpu->righe * sizeof(double);
     CUDA_MALLOC(d_vettore, size_vettore);
     CUDA_MEMCPY(d_vettore, cpu->vettore, size_vettore, cudaMemcpyHostToDevice);
 
@@ -161,7 +161,7 @@ void freeVectorGpu(Vector **vec_gpu) {
 
 
 void vectorMultiplySerial(Vector *a, Vector* b, Vector * result) {
-    for (int i = 0; i < a->righr; ++i) {
+    for (int i = 0; i < a->righe; ++i) {
         result->vettore[i] = a->vettore[i] * b->vettore[i];
     }
 }
@@ -222,7 +222,7 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
 
 __global__ void vectorMultiply(Vector *a, Vector *b, Vector *result) {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < a->righr) {
+    if (idx < a->righe) {
         result->vettore[idx] = a->vettore[idx] * b->vettore[idx];
     }
 }
@@ -239,7 +239,7 @@ int multCudaCSRKernelWarp(MatriceCsr *mat,Vector *vector,Vector *result,double *
     allocateAndCopyVector(result,&resultG);
 
     unsigned int rows=mat->height;
-    int N = vector->righr*32;
+    int N = vector->righe*32;
     N=N+(threadsPerBlock-N%threadsPerBlock);
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
    
@@ -263,7 +263,7 @@ int multCudaCSRKernelLinear(MatriceCsr *mat,Vector *vector,Vector *result,double
     allocateAndCopyVector(result,&resultG);
 
     unsigned int rows=mat->height;
-    int N = vector->righr;
+    int N = vector->righe;
     N=N+(threadsPerBlock-N%threadsPerBlock);
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
    
