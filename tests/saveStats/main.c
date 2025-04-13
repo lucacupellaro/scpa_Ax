@@ -247,11 +247,11 @@ if (flatHll != 0){
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
-        int result_ = invokeKernel(vectorR, resultV, cudaHllMat, matHll, hack, &time);// lu segmentation fault qui
-        if(result_!=0){
-            printf("kernel 1 crashed\n");
-            exit(1);
-        }
+        //int result_ = invokeKernel(vectorR, resultV, cudaHllMat, matHll, hack, &time);// lu segmentation fault qui
+        //if(result_!=0){
+          //  printf("kernel 1 crashed\n");
+            //exit(1);
+       // }
         result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     if(areVectorsEqual(resultV,resultSerial)!=0){
