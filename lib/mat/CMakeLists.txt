@@ -8,7 +8,7 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 
 
-file(GLOB Sources *.h *.c)
+file(GLOB Sources *.h *.c *.cu)
 add_library(matlib STATIC ${Sources})
 target_include_directories(matlib
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
