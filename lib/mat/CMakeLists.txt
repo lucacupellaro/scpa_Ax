@@ -1,7 +1,15 @@
-cmake_minimum_required(VERSION 3.10)
-project(matLib VERSION 0.1)
-file(GLOB Sources *.h *.c)
-add_library(matLib STATIC ${Sources})
-target_include_directories(matLib
+cmake_minimum_required(VERSION 3.25)
+project(matlib LANGUAGES C)  # Set language to C
+enable_language(CUDA)
+find_package(CUDA REQUIRED)
+
+set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+
+
+file(GLOB Sources *.h *.c *.cu)
+add_library(matlib STATIC ${Sources})
+target_include_directories(matlib
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     )
