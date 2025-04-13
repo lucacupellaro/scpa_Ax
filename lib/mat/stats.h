@@ -38,7 +38,7 @@ void initializeCsvEntry(struct CsvEntry *entry, const char *matrixName, const ch
 
 void writeCsvEntriesToFile(const char *filename, struct CsvEntry *entries, int n)
 {
-    FILE *file = fopen(filename, "w");
+    FILE *file = fopen(filename, "w+");
     if (file == NULL)
     {
         fprintf(stderr, "Failed to open file for writing.\n");

@@ -67,11 +67,13 @@ int main(int argc, char *argv[]) {
 
     pclose(pipe);
 
-    printf("Found %d matrix names:\n", num_matrices);
-    for (int i = 0; i < num_matrices; i++) {
+   /*
+   for (int i = 0; i < num_matrices; i++) {
         printf("Matrix %d: %s\n", i + 1, matrix_names[i]);
     }
 
+   */
+    
     // Allocate results array for all matrices
     struct CsvEntry *all_results = malloc(sizeof(struct CsvEntry) * 4 * num_matrices);
     if (!all_results) {
@@ -91,7 +93,7 @@ int main(int argc, char *argv[]) {
         char full_matrix_path[256]; // Adjust size as needed
         snprintf(full_matrix_path, sizeof(full_matrix_path), "%s/%s", "mat", matrix_names[current_matrix]);
 
-        printf("Processing matrix: %s\n", full_matrix_path); // Debug: Print matrix path
+        h
 
 
         struct MatriceRaw *mat;
@@ -107,7 +109,7 @@ int main(int argc, char *argv[]) {
             return 1; // Or handle the error and continue
         }
 
-        printf("Matrix loaded successfully.\n"); // Debug: Matrix load success
+        
 
         struct MatriceCsr *csrMatrice;
         convertRawToCsr(mat, &csrMatrice);
@@ -126,7 +128,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        printf("CSR matrix converted, random vector generated.\n"); // Debug
+        
 
         // Calculate offsets for results array
         int csr_serial_offset = current_matrix * 4 + 0;
@@ -138,7 +140,7 @@ int main(int argc, char *argv[]) {
         generateEmpty(rows, &resultV1);
         initializeCsvEntry(&all_results[csr_serial_offset], matrix_names[current_matrix], "csr", "serial", 1, 0, iterations);
 
-        printf("v1 Generato. \n");
+        
 
         double time = 0;
         for (int i = 0; i < iterations; i++) {
@@ -147,7 +149,7 @@ int main(int argc, char *argv[]) {
         }
         freeRandom(&resultV1);
 
-        printf("CSR serial multiplication complete.\n"); // Debug
+       
 
         struct Vector *resultV2;
         generateEmpty(rows, &resultV2);
@@ -159,7 +161,7 @@ int main(int argc, char *argv[]) {
         }
         freeRandom(&resultV2);
 
-        printf("CSR parallel multiplication complete.\n"); // Debug
+        
 
         struct MatriceHLL *matHll;
         hack=mat->nz/20;
@@ -175,7 +177,7 @@ int main(int argc, char *argv[]) {
         }
         freeRandom(&resultV3);
 
-        printf("HLL serial multiplication complete.\n"); // Debug
+        
 
         struct Vector *resultV4;
         generateEmpty(rows, &resultV4);
@@ -187,22 +189,22 @@ int main(int argc, char *argv[]) {
         }
         freeRandom(&resultV4);
 
-        printf("HLL parallel multiplication complete.\n"); // Debug
+        
 
         freeRandom(&vectorR);
         freeMatHll(&matHll);
         freeMatRaw(&mat);
         freeMatCsr(&csrMatrice);
 
-        printf("Memory freed for current matrix.\n"); // Debug
+        
     }
 
 
-    printf("Writing results to CSV file...\n"); // Debug
+  
 
-    writeCsvEntriesToFile("../..result/test.csv", all_results, 4 * num_matrices);
+    writeCsvEntriesToFile("../../../result/test.csv", all_results, 4 * num_matrices);
 
-    printf("Results written to CSV file.\n"); // Debug
+   
 
     // Free matrix names
     for (int i = 0; i < num_matrices; i++) {
