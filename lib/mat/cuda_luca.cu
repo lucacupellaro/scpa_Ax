@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "matriciOpp.h"
 
+#include "cuda_luca.h"
 #define WARP_SIZE 32
 
 #define DEBUG 0
@@ -283,6 +285,7 @@ int invokeKernel1(struct Vector *vect,
     int righex=vect->righe;
     cudaMalloc((void**)&d_vettore, sizeof(double) * vect->righe);
     cudaMemcpy(d_vettore, vect->vettore, sizeof(double) * vect->righe, cudaMemcpyHostToDevice);
+    double *temp=vect->vettore;
 
     vect->vettore = d_vettore;
 
@@ -294,7 +297,6 @@ int invokeKernel1(struct Vector *vect,
     double *d_result_vettore;
     cudaMalloc((void**)&d_result_vettore, sizeof(double) * result->righe);
  
-    double *temp=vect->vettore;
 
     result->vettore = d_result_vettore;
 

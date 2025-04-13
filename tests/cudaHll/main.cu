@@ -13,8 +13,7 @@ int main(int argc, char *argv[] ) {
     struct MatriceRaw *mat;
     struct Vector *vect;
     struct Vector *result;
-    struct Vector *result2;
-    struct Vector *resultSerial;
+    //struct Vector *resultSerial;
     struct FlatELLMatrix *cudaHllMat;
     cudaEvent_t start,stop;
 
@@ -67,7 +66,7 @@ int main(int argc, char *argv[] ) {
         return emptyResult;
     }
 
-    emptyResult = generateEmpty(mat->height, &resultSerial);
+    /*emptyResult = generateEmpty(mat->height, &resultSerial);
     if (emptyResult != 0)
     {
         printf("Error while creating result vectorSerial\n");
@@ -75,16 +74,10 @@ int main(int argc, char *argv[] ) {
     }
 
     printf("\n dimensione resultSeires: %d",resultSerial->righe);
-
+*/
     
 
-    emptyResult = generateEmpty(mat->height, &result2);
-    if (emptyResult != 0)
-    {
-        printf("Error while creating result vectorSerial\n");
-        return emptyResult;
-    }
-
+ 
  
 
     int flatHll = convertHLLToFlatELL(&matHll, &cudaHllMat);
@@ -108,7 +101,7 @@ int main(int argc, char *argv[] ) {
 
     if (k == 1) {
         printf("\n avvio kernel 1:\n");
-        result_ = invokeKernel1(vect, result, result2, resultSerial, cudaHllMat, matHll, hack, &time);
+        result_ = invokeKernel1(vect, result, cudaHllMat, matHll, hack, &time);
 
         printf("tempo ritornato:\n %f",time);
 
@@ -121,7 +114,7 @@ int main(int argc, char *argv[] ) {
         printf("GFLOPS Kernel 1: %lf\n", gflops);
     } else if (k == 2) {
         printf("\n avvio kernel 2:\n");
-        result_ = invokeKernel2(vect, result, result2, resultSerial, cudaHllMat, matHll, hack,&time);
+        result_ = invokeKernel2(vect, result, cudaHllMat, matHll, hack,&time);
         if(result_!=0){
             printf("kernel 2 crashed");
             exit;
@@ -131,7 +124,7 @@ int main(int argc, char *argv[] ) {
         printf("GFLOPS Kernel 2: %lf\n", gflops);
     } else if (k == 3) {
         printf("\n avvio kernel 3:\n");
-        result_ = invokeKernel3(vect, result, result2, resultSerial, cudaHllMat, matHll, hack,&time);
+        result_ = invokeKernel3(vect, result, cudaHllMat, matHll, hack,&time);
         if(result_!=0){
             printf("kernel 3 crashed");
             exit;

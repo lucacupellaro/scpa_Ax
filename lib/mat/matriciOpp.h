@@ -49,7 +49,7 @@ int convertRawToCsr(MatriceRaw *matricePointer, MatriceCsr **csrPointer);
 int freeMatCsr(MatriceCsr **matricePointer);
 
 /* Definizione di ELLPACK_Block */
-typedef struct {
+typedef struct ELLPACK_Block{
     int M;      // Righe del blocco (HackSize o meno)
     int N;      // Colonne del blocco
     int MAXNZ;  // Numero massimo di elementi non zero per riga

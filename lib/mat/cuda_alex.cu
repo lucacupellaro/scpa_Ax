@@ -23,7 +23,7 @@
 #define CUDA_MALLOC(ptr, size)                                  \
     do {                                                         \
         CUDA_CHECK(cudaMalloc((void**)&ptr, (size)));            \
-            printf("Allocated %lu bytes at %p [%s:%d]\n",        \
+            fprintf(stderr,"Allocated %lu bytes at %p [%s:%d]\n",        \
                    (size_t)(size), (void*)(ptr), __FILE__, __LINE__); \
     } while (0)
 
@@ -33,7 +33,7 @@
     do {                                                     \
         if ((ptr) != NULL) {                                 \
             CUDA_CHECK(cudaFree(ptr));                       \
-            printf("Freed memory at %p [%s:%d]\n",           \
+            fprintf(stderr,"Freed memory at %p [%s:%d]\n",           \
                    (void*)(ptr), __FILE__, __LINE__);        \
             (ptr) = NULL;  /* Avoid dangling pointer */      \
         }                                                   \
@@ -43,7 +43,7 @@
 #define CUDA_MEMCPY(dst, src, size, direction)                           \
     do {                                                                 \
         CUDA_CHECK(cudaMemcpy((dst), (src), (size), (direction)));       \
-        printf("[CUDA MEMCPY] %lu bytes from %p to %p (Dir: %d) [%s:%d]\n", \
+        fprintf(stderr,"[CUDA MEMCPY] %lu bytes from %p to %p (Dir: %d) [%s:%d]\n", \
                (size_t)(size), (void*)(src), (void*)(dst), (direction), __FILE__, __LINE__); \
     } while (0)
 

@@ -6,6 +6,8 @@
 #include <limits.h>
 #include "matriciOpp.h" 
 #include "stats.h"     
+#include "cuda_alex.h"
+#include "cuda_luca.h"
 
 #define MAX_LINE_LENGTH 256
 #define RESULTS_PER_MATRIX 4 
@@ -189,16 +191,89 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         }
         freeRandom(&resultV);
     }
-    //------------------------------CUDA CSR-----------------------------//
-    {
-        testVectors(20); 
+//------------------------------CUDA CSR  SERIAL KERNEL-----------------------------//
+{
+    struct CsvEntry result;
+    struct Vector *resultV;
+    generateEmpty(rows, &resultV);
+    initializeCsvEntry(&result, matrix_name, "csr", "cudaSerial", rows, 0, iterations);
+
+    double time = 0;
+    for (int i = 0; i < iterations; i++) {
+        multCudaCSRKernelLinear( csrMatrice, vectorR, resultV, &time,256);
+        result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
-    cleanup:
-        freeMatHll(&matHll);   // Safe if matHll is NULL
-        freeMatCsr(&csrMatrice);// Safe if csrMatrice is NULL
-        freeMatRaw(&mat);   
-    return status;
+    if(areVectorsEqual(resultV,resultSerial)!=0){
+        printf("result hll serial is borken");
+    }else{
+        append_csv_entry(csv,&result);
+    }
+    freeRandom(&resultV); 
 }
+//------------------------------CUDA CSR  WARP KERNEL-----------------------------//
+{
+    struct CsvEntry result;
+    struct Vector *resultV;
+    generateEmpty(rows, &resultV);
+    initializeCsvEntry(&result, matrix_name, "csr", "cudaWarp", rows, 0, iterations);
+
+    double time = 0;
+    for (int i = 0; i < iterations; i++) {
+        multCudaCSRKernelWarp( csrMatrice, vectorR, resultV, &time,256);
+        result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
+    }
+    if(areVectorsEqual(resultV,resultSerial)!=0){
+        printf("result hll serial is borken");
+    }else{
+        append_csv_entry(csv,&result);
+    }
+    freeRandom(&resultV); 
+}
+
+// CONVERT HLL TO FLAT HLL
+FlatELLMatrix *cudaHllMat;
+int flatHll = convertHLLToFlatELL(&matHll, &cudaHllMat);
+if (flatHll != 0){
+        printf("Error while converting to flat format result vector\n");
+        return flatHll;
+}
+
+//------------------------------CUDA HLL  1-----------------------------//
+{
+    struct CsvEntry result;
+    struct Vector *resultV;
+    generateEmpty(rows, &resultV);
+    initializeCsvEntry(&result, matrix_name, "hll", "cudaKernel1", rows, 0, iterations);
+
+    double time = 0;
+    for (int i = 0; i < iterations; i++) {
+        int result_ = invokeKernel(vectorR, resultV, cudaHllMat, matHll, hack, &time);// lu segmentation fault qui
+        if(result_!=0){
+            printf("kernel 1 crashed\n");
+            exit(1);
+        }
+        result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
+    }
+    if(areVectorsEqual(resultV,resultSerial)!=0){
+        printf("result hll serial is borken");
+    }else{
+        append_csv_entry(csv,&result);
+    }
+    freeRandom(&resultV); 
+}
+
+
+cleanup:
+    freeMatHll(&matHll);   // Safe if matHll is NULL
+    freeMatCsr(&csrMatrice);// Safe if csrMatrice is NULL
+    freeMatRaw(&mat);   
+return status;
+}
+
+
+
+
+
 
 void print_app_config(const AppConfig *config) {
     // Check if the pointer passed is valid
