@@ -92,10 +92,6 @@ int main(int argc, char *argv[]) {
     for (int current_matrix = 0; current_matrix < num_matrices; current_matrix++) {
         char full_matrix_path[256]; // Adjust size as needed
         snprintf(full_matrix_path, sizeof(full_matrix_path), "%s/%s", "mat", matrix_names[current_matrix]);
-
-        h
-
-
         struct MatriceRaw *mat;
         int result = loadMatRaw(full_matrix_path, &mat);
         if (result != 1) {
