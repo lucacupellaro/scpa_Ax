@@ -2,213 +2,470 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "matriciOpp.h"
-#include "stats.h"
+#include <errno.h>
+#include <limits.h>
+#include "matriciOpp.h" 
+#include "stats.h"     
 
 #define MAX_LINE_LENGTH 256
-#define MAX_MATRICES 30 // Define a maximum number of matrices
+#define RESULTS_PER_MATRIX 4 
+#define MATRIX_DIR "mat"
+#define DEFAULT_SEED 42
+#define SCRIPT_COMMAND "../../../addMatrices.sh" 
+#define CSV_OUTPUT_FILE "../../../result/test.csv" 
+
+
+typedef struct {
+    int *thread_counts;
+    int num_thread_counts;
+    int num_iterations;
+    char *single_matrix_file;
+} AppConfig;
+
+typedef struct {
+    char **names;
+    int count;
+} MatrixFileList;
+    
+
+int parse_arguments(int argc, char *argv[], AppConfig *config);
+void print_app_config(const AppConfig *config);
+void cleanup_app_config(AppConfig *config);
+int get_matrix_filenames(const char *script_path, MatrixFileList *file_list);
+int process_matrix(const char *matrix_name ,const AppConfig *config,FILE * csv);
+int get_matrix_filenames(const char *script_path, MatrixFileList *file_list);
+void cleanup_matrix_filenames(MatrixFileList *file_list);
+void print_matrix_file_list(const MatrixFileList *file_list);
 
 int main(int argc, char *argv[]) {
-    if (argc < 5) {
-        fprintf(stderr, "Usage: %s [martix-market-filename] [number of max threads] [number of measure for combination] [lenght of hll blocks]\n", argv[0]);
-        exit(1);
-    }
-
-    int threads = atoi(argv[2]);
-    int iterations = atoi(argv[3]);
-    int hack = atoi(argv[4]);
-
-    FILE *pipe;
-    char line[MAX_LINE_LENGTH];
-    char **matrix_names = NULL;
-    int num_matrices = 0;
-    const char *command = "../../../addMatrices.sh"; // Adjust path if needed
-
-    pipe = popen(command, "r");
-    if (pipe == NULL) {
-        perror("Error executing script");
-        return 1;
-    }
-
-    while (fgets(line, sizeof(line), pipe) != NULL) {
-        // Remove trailing newline character
-        size_t len = strlen(line);
-        if (len > 0 && line[len - 1] == '\n') {
-            line[len - 1] = '\0';
-        }
-
-        // Remove leading/trailing whitespace (optional)
-        char *start = line;
-        while (*start == ' ' || *start == '\t')
-            start++;
-        char *end = start + strlen(start) - 1;
-        while (end > start && (*end == ' ' || *end == '\t'))
-            *end-- = '\0';
-
-        // Skip empty lines
-        if (*start != '\0') {
-            char *name = strdup(start);
-            if (!name) {
-                perror("strdup");
-                /* cleanup */;
-                return 1;
-            }
-            char **temp = realloc(matrix_names, (num_matrices + 1) * sizeof(char *));
-            if (!temp) {
-                perror("realloc");
-                free(name);
-                /* cleanup */;
-                return 1;
-            }
-            matrix_names = temp;
-            matrix_names[num_matrices++] = name;
-        }
-    }
-
-    pclose(pipe);
-
-   /*
-   for (int i = 0; i < num_matrices; i++) {
-        printf("Matrix %d: %s\n", i + 1, matrix_names[i]);
-    }
-
-   */
     
-    // Allocate results array for all matrices
-    struct CsvEntry *all_results = malloc(sizeof(struct CsvEntry) * 4 * num_matrices);
-    if (!all_results) {
-        perror("Failed to allocate memory for all_results");
-        for (int i = 0; i < num_matrices; i++)
-            free(matrix_names[i]);
-        free(matrix_names);
+    AppConfig config;
+    FILE * csv;
+    MatrixFileList file_list;
+
+    if (parse_arguments(argc, argv, &config) != 0) {
+        return 1;
+    } 
+    print_app_config(&config);      //Troppo bello pero non l'ho fatta i
+    
+    if (get_matrix_filenames(SCRIPT_COMMAND, &file_list) != 0) {
         return 1;
     }
+    print_matrix_file_list(&file_list);
+    
+    csv=initialize_csv_file(CSV_OUTPUT_FILE);
+    if (csv==NULL){
+        return 1;
+    }
+    
+    
+    
+    for(int i=0;i<file_list.count;i++){
+        printf("Processing matrix:%s\n",file_list.names[i]);
+        process_matrix(file_list.names[i],&config,csv);
+    }
 
-    struct Vector *vectorR;
-    int seed = 42;
+    cleanup:
+        close(csv);
+        cleanup_app_config(&config);
+        cleanup_matrix_filenames(&file_list);
+}
 
-    omp_set_num_threads(threads);
 
-    for (int current_matrix = 0; current_matrix < num_matrices; current_matrix++) {
-        char full_matrix_path[256]; // Adjust size as needed
-        snprintf(full_matrix_path, sizeof(full_matrix_path), "%s/%s", "mat", matrix_names[current_matrix]);
-        struct MatriceRaw *mat;
-        int result = loadMatRaw(full_matrix_path, &mat);
-        if (result != 1) {
-            fprintf(stderr, "Errore leggendo la matrice: %s\n", full_matrix_path);
-            // Cleanup and continue or exit, depending on your error handling policy
-            for (int i = 0; i < current_matrix; i++) {
-                free(matrix_names[i]);
-            }
-            free(matrix_names);
-            free(all_results);
-            return 1; // Or handle the error and continue
-        }
+int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
+    char full_matrix_path[512]; // Increased buffer size
+    snprintf(full_matrix_path, sizeof(full_matrix_path), "../../../%s/%s", MATRIX_DIR, matrix_name);
+    int status=-1;
+    struct MatriceRaw *mat = NULL;
+    struct MatriceCsr *csrMatrice = NULL;
+    struct MatriceHLL *matHll = NULL;
+    struct Vector *vectorR=NULL;
+    if (loadMatRaw(full_matrix_path, &mat) != 1) {
+        fprintf(stderr, "Error reading matrix: %s\n", full_matrix_path);
+        goto cleanup; // Use goto for centralized cleanup within this function
+    }
 
-        
+    int rows=mat->height;
+    int seed=1;
 
-        struct MatriceCsr *csrMatrice;
-        convertRawToCsr(mat, &csrMatrice);
-        unsigned int rows = mat->height;
+    if (generate_random_vector(seed, rows, &vectorR) != 0) {
+        fprintf(stderr, "Failed to generate random vector for matrix: %s\n", matrix_name);
+        goto cleanup;
+    }
 
-        if (generate_random_vector(seed, rows, &vectorR) != 0) {
-            fprintf(stderr, "Failed to allocate memory or invalid input for matrix: %s\n", full_matrix_path);
-            freeMatRaw(&mat);
-            freeMatCsr(&csrMatrice);
-            // Cleanup and continue or exit
-            for (int i = 0; i < current_matrix; i++) {
-                free(matrix_names[i]);
-            }
-            free(matrix_names);
-            free(all_results);
-            return 1;
-        }
 
-        
+    convertRawToCsr(mat, &csrMatrice);
+    if (!csrMatrice) {
+         fprintf(stderr, "Error converting %s to CSR\n", matrix_name);
+         goto cleanup;
+    }
+    int hack=mat->nz/20;
+    convertRawToHll(mat, hack, &matHll);
+     if (!matHll) {
+          fprintf(stderr, "Error converting %s to HLL (block length %d)\n", matrix_name, hack);
+          goto cleanup;
+     }
 
-        // Calculate offsets for results array
-        int csr_serial_offset = current_matrix * 4 + 0;
-        int csr_parallel_offset = current_matrix * 4 + 1;
-        int hll_serial_offset = current_matrix * 4 + 2;
-        int hll_parallel_offset = current_matrix * 4 + 3;
+    double non_zeros = (double)mat->nz; 
+    int iterations=config->num_iterations;
 
-        struct Vector *resultV1;
-        generateEmpty(rows, &resultV1);
-        initializeCsvEntry(&all_results[csr_serial_offset], matrix_names[current_matrix], "csr", "serial", 1, 0, iterations);
+    //--------------------------PUT ALL MATRIX OPERATIONS-------------------//
+    //------------------------------Serial CSR-----------------------------//
 
-        
+    struct Vector *resultSerial;
+    {   
+        struct CsvEntry result;
+        generateEmpty(rows, &resultSerial);
+        initializeCsvEntry(&result, matrix_name, "csr", "serial", 1, 0, iterations);
 
         double time = 0;
         for (int i = 0; i < iterations; i++) {
-            csrMultWithTime(&serialCsrMult, csrMatrice, vectorR, resultV1, &time);
-            all_results[csr_serial_offset].measure[i] = 2.0 * mat->nz / (time * 1000000000);
+            csrMultWithTime(&serialCsrMult, csrMatrice, vectorR, resultSerial, &time);
+            result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
-        freeRandom(&resultV1);
+        append_csv_entry(csv,&result);
+        //freeRandom(&resultV1);
+    }
+    //------------------------------OpenMP CSR-----------------------------//
 
-       
+    for(int j=0;j<config->num_thread_counts;j++){
+        int thread=config->thread_counts[j];
+        omp_set_num_threads(thread);
+        struct CsvEntry result;
+        struct Vector *resultV;
+        generateEmpty(rows, &resultV);
+        initializeCsvEntry(&result, matrix_name, "csr", "openMp", thread, 0, iterations);
 
-        struct Vector *resultV2;
-        generateEmpty(rows, &resultV2);
-        initializeCsvEntry(&all_results[csr_parallel_offset], matrix_names[current_matrix], "csr", "parallelOpenMp", threads, 0, iterations);
-        time = 0;
+        double time = 0;
         for (int i = 0; i < iterations; i++) {
-            csrMultWithTime(&parallelCsrMult, csrMatrice, vectorR, resultV2, &time);
-            all_results[csr_parallel_offset].measure[i] = 2.0 * mat->nz / (time * 1000000000);
+            csrMultWithTime(&parallelCsrMult, csrMatrice, vectorR, resultV, &time);
+            result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
-        freeRandom(&resultV2);
+        if(areVectorsEqual(resultV,resultSerial)!=0){
+            printf("result hll serial is borken");
+        }else{
+            append_csv_entry(csv,&result);
+        }
+        freeRandom(&resultV);
+    }
+    //------------------------------Serial HLL-----------------------------//
+    {   
+        struct Vector *resultV;
+        struct CsvEntry result;
+        generateEmpty(rows, &resultV);
+        initializeCsvEntry(&result, matrix_name, "hll", "serial", 1, hack, iterations);
 
-        
-
-        struct MatriceHLL *matHll;
-        hack=mat->nz/20;
-
-        convertRawToHll(mat, hack, &matHll);
-        struct Vector *resultV3;
-        generateEmpty(rows, &resultV3);
-        initializeCsvEntry(&all_results[hll_serial_offset], matrix_names[current_matrix], "hll", "serial", 1, hack, iterations);
-        time = 0;
+        double time = 0;
         for (int i = 0; i < iterations; i++) {
-            hllMultWithTime(&serialMultiplyHLL, matHll, vectorR, resultV3, &time);
-            all_results[hll_serial_offset].measure[i] = 2.0 * mat->nz / (time * 1000000000);
+            hllMultWithTime(&serialMultiplyHLL, matHll, vectorR, resultV, &time);
+            result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
-        freeRandom(&resultV3);
+        if(areVectorsEqual(resultV,resultSerial)!=0){
+            printf("result hll serial is borken");
+        }else{
+            append_csv_entry(csv,&result);
+        }
+        freeRandom(&resultV);
+    }
+    //------------------------------OpenMP HLL-----------------------------//
 
-        
+    for(int j=0;j<config->num_thread_counts;j++){
+        int thread=config->thread_counts[j];
+        omp_set_num_threads(thread);
+        struct CsvEntry result;
+        struct Vector *resultV;
+        generateEmpty(rows, &resultV);
+        initializeCsvEntry(&result, matrix_name, "hll", "openMp", thread, hack, iterations);
 
-        struct Vector *resultV4;
-        generateEmpty(rows, &resultV4);
-        initializeCsvEntry(&all_results[hll_parallel_offset], matrix_names[current_matrix], "hll", "parallelOpenMp", threads, hack, iterations);
-        time = 0;
+        double time = 0;
         for (int i = 0; i < iterations; i++) {
-            hllMultWithTime(&openMpMultiplyHLL, matHll, vectorR, resultV4, &time);
-            all_results[hll_parallel_offset].measure[i] = 2.0 * mat->nz / (time * 1000000000);
+            hllMultWithTime(&openMpMultiplyHLL, matHll, vectorR, resultV, &time);
+            result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
-        freeRandom(&resultV4);
+        if(areVectorsEqual(resultV,resultSerial)!=0){
+            printf("result hll serial is borken");
+        }else{
+            append_csv_entry(csv,&result);
+        }
+        freeRandom(&resultV);
+    }
+    //------------------------------CUDA CSR-----------------------------//
+    {
+        //testVectors(20); era solo per testare cuda e funziona siiiiiiiiiiiiiiiiiiiiiiiiii
+   }
+    cleanup:
+        freeMatHll(&matHll);   // Safe if matHll is NULL
+        freeMatCsr(&csrMatrice);// Safe if csrMatrice is NULL
+        freeMatRaw(&mat);   
+    return status;
+}
 
-        
+void print_app_config(const AppConfig *config) {
+    // Check if the pointer passed is valid
+    if (config == NULL) {
+        printf("AppConfig pointer is NULL.\n");
+        return;
+    }
 
-        freeRandom(&vectorR);
-        freeMatHll(&matHll);
-        freeMatRaw(&mat);
-        freeMatCsr(&csrMatrice);
+    printf("--- Application Configuration ---\n");
 
-        
+    // Print num_iterations
+    printf("Number of Iterations: %d\n", config->num_iterations);
+
+    // Print the list of thread counts
+    printf("Thread Counts (%d): ", config->num_thread_counts);
+    if (config->thread_counts != NULL && config->num_thread_counts > 0) {
+        for (int i = 0; i < config->num_thread_counts; ++i) {
+            printf("%d", config->thread_counts[i]);
+            // Add a comma and space unless it's the last element
+            if (i < config->num_thread_counts - 1) {
+                printf(", ");
+            }
+        }
+        printf("\n");
+    } else {
+        printf("[No thread counts specified or list is empty]\n");
+    }
+
+    // Print the optional single matrix file name
+    printf("Single Matrix File: ");
+    if (config->single_matrix_file != NULL) {
+        printf("%s\n", config->single_matrix_file);
+    } else {
+        printf("[Not specified - will use script]\n");
+    }
+
+    printf("-------------------------------\n");
+}
+
+int parse_int_list(const char *str, int **list_ptr, int *count_ptr) {
+    *list_ptr = NULL;
+    *count_ptr = 0;
+    if (!str || *str == '\0') {
+        fprintf(stderr, "Error: Input string for integer list is NULL or empty.\n");
+        return -1;
+    }
+
+    char *str_copy = strdup(str);
+    if (!str_copy) {
+        perror("Error duplicating string for parsing");
+        return -1;
+    }
+
+    int capacity = 4;
+    int count = 0;
+    int *list = malloc(capacity * sizeof(int));
+    if (!list) {
+        perror("Error allocating initial memory for integer list");
+        free(str_copy);
+        return -1;
+    }
+
+    char *token = strtok(str_copy, ",");
+    while (token != NULL) {
+
+        while (*token == ' ' || *token == '\t') token++;
+        char *end_token = token + strlen(token) - 1;
+        while (end_token > token && (*end_token == ' ' || *end_token == '\t')) *end_token-- = '\0';
+
+         if (*token == '\0') {
+             token = strtok(NULL, ",");
+             continue;
+        }
+
+        char *endptr;
+        errno = 0;
+        long val = strtol(token, &endptr, 10);
+
+
+        if (endptr == token) { fprintf(stderr, "Error: Invalid number format '%s' in list.\n", token); goto error_cleanup; }
+        if (*endptr != '\0') { fprintf(stderr, "Error: Trailing characters after number '%s' in list.\n", token); goto error_cleanup; }
+        if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) || (errno != 0 && val == 0)) { fprintf(stderr, "Error: Number '%s' out of range for long.\n", token); goto error_cleanup; }
+        if (val <= 0 || val > INT_MAX) { fprintf(stderr, "Error: Parsed value '%s' must be a positive integer within range.\n", token); goto error_cleanup; }
+
+
+        if (count >= capacity) {
+            capacity *= 2;
+            int *temp = realloc(list, capacity * sizeof(int));
+            if (!temp) { perror("Error reallocating memory for integer list"); goto error_cleanup; }
+            list = temp;
+        }
+
+        list[count++] = (int)val;
+        token = strtok(NULL, ",");
+    }
+
+    free(str_copy);
+    if (count == 0) { fprintf(stderr, "Error: No valid integers found in the list string.\n"); free(list); return -1; }
+
+    *list_ptr = list;
+    *count_ptr = count;
+    return 0;
+
+error_cleanup:
+    free(list);
+    free(str_copy);
+    *list_ptr = NULL;
+    *count_ptr = 0;
+    return -1;
+}
+
+int parse_arguments(int argc, char *argv[], AppConfig *config) {
+
+    config->thread_counts = NULL;
+    config->num_thread_counts = 0;
+    config->num_iterations = 0;
+    config->single_matrix_file = NULL;
+
+
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s \"thread_list\" iterations [optional_matrix_file]\n", argv[0]);
+        fprintf(stderr, "Example: %s \"1,2,4,8\" 10\n", argv[0]);
+        fprintf(stderr, "Example: %s \"1,8\" 5 my_matrix.mtx\n", argv[0]);
+        return -1;
     }
 
 
-  
-
-    writeCsvEntriesToFile("../../../result/test.csv", all_results, 4 * num_matrices);
-
-   
-
-    // Free matrix names
-    for (int i = 0; i < num_matrices; i++) {
-        free(matrix_names[i]);
+    if (parse_int_list(argv[1], &config->thread_counts, &config->num_thread_counts) != 0) {
+        fprintf(stderr, "Error parsing thread list: '%s'\n", argv[1]);
+        return -1;
     }
-    free(matrix_names);
-    free(all_results);
+
+
+    char *endptr;
+    errno = 0;
+    long iterations_val = strtol(argv[2], &endptr, 10);
+    if (endptr == argv[2] || *endptr != '\0' || errno == ERANGE || iterations_val <= 0 || iterations_val > INT_MAX) {
+         fprintf(stderr, "Error: Invalid iterations value '%s'. Must be a positive integer.\n", argv[2]);
+         cleanup_app_config(config);
+         return -1;
+    }
+    config->num_iterations = (int)iterations_val;
+
+
+    if (argc >= 4) {
+        config->single_matrix_file = strdup(argv[3]);
+        if (!config->single_matrix_file) {
+            perror("Error duplicating single matrix filename");
+            cleanup_app_config(config);
+            return -1;
+        }
+        printf("Info: Optional single matrix file specified: %s\n", config->single_matrix_file);
+    } else {
+        config->single_matrix_file = NULL;
+        printf("Info: No single matrix file specified, will use script execution.\n");
+    }
 
     return 0;
 }
 
+void cleanup_app_config(AppConfig *config) {
+    if (!config) return;
+    free(config->thread_counts);
+    config->thread_counts = NULL;
+    config->num_thread_counts = 0;
+
+    free(config->single_matrix_file);
+    config->single_matrix_file = NULL;
+}
+
+// --- Get Matrix Filenames ---
+int get_matrix_filenames(const char *script_path, MatrixFileList *file_list) {
+    FILE *pipe;
+    char line[MAX_LINE_LENGTH];
+    file_list->names = NULL;
+    file_list->count = 0;
+
+    pipe = popen(script_path, "r");
+    if (pipe == NULL) {
+        perror("Error executing script");
+        return -1;
+    }
+
+    while (fgets(line, sizeof(line), pipe) != NULL) {
+        // Remove trailing newline
+        line[strcspn(line, "\n")] = 0;
+
+        // Basic trim leading/trailing whitespace (simplified)
+        char *start = line;
+        while (*start && (*start == ' ' || *start == '\t')) start++;
+        char *end = start + strlen(start);
+        while (end > start && (*(end - 1) == ' ' || *(end - 1) == '\t')) end--;
+        *end = '\0';
+
+        if (*start == '\0') continue; // Skip empty lines
+
+        char *name = strdup(start);
+        if (!name) {
+            perror("strdup failed");
+            pclose(pipe);
+            cleanup_matrix_filenames(file_list); // Clean up what we have so far
+            return -1;
+        }
+
+        char **temp = realloc(file_list->names, (file_list->count + 1) * sizeof(char *));
+        if (!temp) {
+            perror("realloc failed");
+            free(name);
+            pclose(pipe);
+            cleanup_matrix_filenames(file_list);
+            return -1;
+        }
+        file_list->names = temp;
+        file_list->names[file_list->count++] = name;
+    }
+
+    int status = pclose(pipe);
+     if (status == -1) {
+          perror("pclose failed");
+          // Decide if this is critical, cleanup might still be needed
+          return -1;
+     } else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+          fprintf(stderr, "Script '%s' exited with status %d\n", script_path, WEXITSTATUS(status));
+          // Decide if this is critical
+          // return -1; // Optional: treat script error as fatal
+     }
+
+
+    return 0;
+}
+
+
+void cleanup_matrix_filenames(MatrixFileList *file_list) {
+    if (file_list && file_list->names) {
+        for (int i = 0; i < file_list->count; i++) {
+            free(file_list->names[i]); // Free each duplicated string
+        }
+        free(file_list->names); // Free the array of pointers
+        file_list->names = NULL;
+        file_list->count = 0;
+    }
+}
+
+
+void print_matrix_file_list(const MatrixFileList *file_list) {
+    if (file_list == NULL) {
+        printf("MatrixFileList pointer is NULL.\n");
+        return;
+    }
+
+    printf("--- Matrix File List ---\n");
+    printf("Number of matrices: %d\n", file_list->count);
+
+    if (file_list->names != NULL && file_list->count > 0) {
+        printf("Matrix Names:\n");
+        for (int i = 0; i < file_list->count; ++i) {
+            if (file_list->names[i] != NULL) {
+                printf("  [%d]: %s\n", i + 1, file_list->names[i]);
+            } else {
+                printf("  [%d]: [NULL entry]\n", i + 1);
+            }
+        }
+    } else if (file_list->count <= 0) {
+         printf("Matrix Names: [List contains zero entries]\n");
+    } else {
+        printf("Matrix Names: [Names pointer is NULL]\n");
+    }
+
+    printf("------------------------\n");
+}

@@ -275,3 +275,56 @@ int multCudaCSRKernelLinear(MatriceCsr *mat,Vector *vector,Vector *result,double
     freeVectorGpu(&resultG);
     freeMatriceCsrGpu(&matG);
 }
+
+
+
+void testVectors(int rows){
+Vector *vector1;
+Vector *vector2;
+Vector *result;
+Vector *resultSerial;
+int seed = 42;
+int num=1000000;
+generate_random_vector(seed, num, &vector1) ;
+generate_random_vector(seed, num, &vector2) ;
+generateEmpty(num,&result);
+generateEmpty(num,&resultSerial);
+
+Vector *vector1G;
+Vector *vector2G;
+Vector *resultG;
+allocateAndCopyVector(vector1,&vector1G);
+allocateAndCopyVector(vector2,&vector2G);
+allocateAndCopyVector(result,&resultG);
+
+int N = vector1->righe;
+int threadsPerBlock = 32;
+int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+//printf("%d\n",blocksPerGrid);
+cudaEvent_t start, stop;
+CUDA_CHECK(cudaEventCreate(&start));
+CUDA_CHECK(cudaEventCreate(&stop));
+CUDA_CHECK(cudaEventRecord(start, 0));
+vectorMultiply<<<blocksPerGrid, threadsPerBlock>>>(vector1G, vector2G, resultG);
+CUDA_CHECK(cudaEventRecord(stop, 0));
+CUDA_CHECK(cudaDeviceSynchronize());
+float seconds = 0;//in milli secondi inizialmente
+CUDA_CHECK(cudaEventElapsedTime(&seconds, start, stop));
+// Clean up events
+seconds=seconds/1000.0;
+CUDA_CHECK(cudaEventDestroy(start));
+CUDA_CHECK(cudaEventDestroy(stop));
+printf("giga flops %f\n",vector1->righe/(seconds*1000000000.0));
+copyVectorBackToHost(result,resultG);
+clock_t t;
+t = clock();
+vectorMultiplySerial(vector1,vector2,resultSerial);
+t = clock() - t;
+double execTime = ((double)t) / CLOCKS_PER_SEC; // in seconds
+printf("giga flops %f\n",vector1->righe/(execTime*1000000000.0));
+int areEq=areVectorsEqual(result,resultSerial);
+printf("are equal(0 yes)? %d\n",areEq);
+return ;
+
+}
+

@@ -115,20 +115,11 @@ build-test-stats:
 run-test-stats:
 	@echo "Checking parameters..."
 	@{ \
-	    if [ -z "$(MATRICE)" ]; then \
-	        echo "ERROR: MATRICE PATH is not set! Use MATRICE=PATH"; exit 1; \
-	    fi; \
-	    if [ -z "$(THREADS)" ]; then \
-	        echo "ERROR: THREADS is not set! Use THREADS=NUM"; exit 1; \
-	    fi; \
-	    if [ -z "$(ITERATIONS)" ]; then \
-	        echo "ERROR: ITERATIONS is not set! Use ITERATIONS=NUM"; exit 1; \
-	    fi; \
-	    if [ -z "$(HACK)" ]; then \
-	        echo "ERROR: HACK is not set! Use HACK=VALUE"; exit 1; \
+	    if [ -z "$(ARGS)" ]; then \
+	        echo "ERROR: ARGS PATH is not set! Use ARGS='arguments'"; exit 1; \
 	    fi; \
 	    echo "All parameters are set. Running test..."; \
-	    cd $(BUILD_DIR_STATS_TEST) && ./Main $(CURRENT_DIR)/$(MATRICE) $(THREADS) $(ITERATIONS) $(HACK); \
+	    cd $(BUILD_DIR_STATS_TEST) && ./Main $(ARGS); \
 	}
 
 

@@ -1,33 +1,40 @@
 cmake_minimum_required(VERSION 3.25)
-project(openM VERSION 0.1)
+project(openM LANGUAGES C CXX CUDA)
 
+# Set CUDA standard
+set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+# Enable OpenMP
 find_package(OpenMP REQUIRED)
 
-# Set OpenMP flags globally for all targets
+# Find CUDA Toolkit
+find_package(CUDA REQUIRED)
+
+# Set build type and flags
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fopenmp")
-set(CMAKE_BUILD_TYPE Debug)
 
-# Add and configure the `matLib` library
+# Add matLib subdirectory
 add_subdirectory(../../lib/mat mat_lib_build)
 
-# Compile `matLib` with OpenMP
+# Apply OpenMP to matlib
 if(OpenMP_C_FOUND)
     target_link_libraries(matlib PUBLIC OpenMP::OpenMP_C)
-    target_compile_options(matlib PRIVATE -fopenmp)
 endif()
 
-# Create the `Main` executable
+# Link CUDA runtime to matlib (modern CMake style)
+target_link_libraries(matlib PUBLIC cudart)
+
+# Create Main executable
 add_executable(Main main.c)
 
-# Compile `Main` with OpenMP
+# Link OpenMP and matlib to Main
 if(OpenMP_C_FOUND)
-    target_compile_options(Main PRIVATE -fopenmp)
     target_link_libraries(Main PUBLIC OpenMP::OpenMP_C)
 endif()
-
-# Link `matLib` to `Main`
 target_link_libraries(Main PRIVATE matlib)
 
-# Include `matLib` headers
+# Include matlib headers
 target_include_directories(Main PRIVATE ../../lib/mat)
