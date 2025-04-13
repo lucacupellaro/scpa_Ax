@@ -324,6 +324,11 @@ int invokeKernel1(struct Vector *vect,
 
     matvec_flatell_kernel<<<grid_size, block_size>>>(d_mat,d_vettore,d_result_vettore,hack);
 
+    cudaError err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "Errore nel lancio del kernel: %s\n", cudaGetErrorString(err));
+        return -1;
+    }
 
     cudaEventRecord(stop, 0);
 
@@ -362,12 +367,7 @@ int invokeKernel1(struct Vector *vect,
 
 
 
-    cudaError err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Errore nel lancio del kernel: %s\n", cudaGetErrorString(err));
-        return -1;
-    }
-
+    
     return 0;
   
 }
