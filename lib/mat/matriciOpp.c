@@ -74,6 +74,14 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
         return 0;
     }
 
+    if (!mm_is_matrix(matcode) || !mm_is_coordinate(matcode)) {
+        fprintf(stderr, "Errore: supportate solo matrici sparse in formato coordinate.\n");
+        fclose(f);
+        return 0;
+    }
+
+
+
     /*  This is how one can screen matrix types if their application */
     /*  only supports a subset of the Matrix Market data types.      */
     if (mm_is_complex(matcode) && mm_is_matrix(matcode) && 
@@ -200,5 +208,3 @@ int freeMatRaw(struct MatriceRaw ** matricePointer){
     free(mat);
     return 0;
 }
-
-

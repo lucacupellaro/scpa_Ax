@@ -301,7 +301,7 @@ int __attribute__((optimize("O3"))) serialMultiplyHLL(struct MatriceHLL *mat, st
         return -1;
 
 
-    if (vec->righr != mat->totalCols || result->righr != mat->totalRows)
+    if (vec->righe != mat->totalCols || result->righe != mat->totalRows)
         return -1;
 
     for (int b = 0; b < mat->numBlocks; b++)
@@ -343,7 +343,7 @@ int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, st
         return -1;
 
 
-    if (vec->righr != mat->totalCols || result->righr != mat->totalRows)
+    if (vec->righe != mat->totalCols || result->righe != mat->totalRows)
         return -1;
 
        //#pragma pragma omp parallel(static)
@@ -367,4 +367,37 @@ int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, st
     }
 
     return 0; // esecuzione corretta
+}
+
+int freeMatHll(struct MatriceHLL **matricePointer) {
+    if (matricePointer == NULL || *matricePointer == NULL) {
+        // Handle the case where the pointer or the pointed-to struct is NULL
+        return 1; // Or you might want to log an error and return
+    }
+
+    struct MatriceHLL *matHll = *matricePointer; // Use a local variable for clarity
+
+    if (matHll->blocks != NULL) {
+        for (int i = 0; i < matHll->numBlocks; i++) {
+            if (matHll->blocks[i] != NULL) {
+                if (matHll->blocks[i]->JA != NULL) {
+                    free(matHll->blocks[i]->JA);
+                    matHll->blocks[i]->JA = NULL;
+                }
+                if (matHll->blocks[i]->AS != NULL) {
+                    free(matHll->blocks[i]->AS);
+                    matHll->blocks[i]->AS = NULL;
+                }
+                free(matHll->blocks[i]);
+                matHll->blocks[i] = NULL;
+            }
+        }
+        free(matHll->blocks);
+        matHll->blocks = NULL;
+    }
+
+    free(matHll);
+    *matricePointer = NULL; // Set the original pointer to NULL
+
+    return 0; // Indicate success
 }

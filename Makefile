@@ -17,6 +17,12 @@ BUILD_DIR_TEST_CSR_MULT=$(BUILDS_FOLDER)$(TEST_FOLDER_CSR_MULT)
 TEST_OPEN_HLL=$(TEST_FOLDER)open_hll
 BUILD_DIR_OPEN_HLL=$(BUILDS_FOLDER)$(TEST_OPEN_HLL)
 
+TEST_OPEN_CUDA=$(TEST_FOLDER)cudaTest
+BUILD_DIR_OPEN_CUDA=$(BUILDS_FOLDER)$(TEST_OPEN_CUDA)
+
+TEST_OPEN_CUDAHLL=$(TEST_FOLDER)cudaHll
+BUILD_DIR_OPEN_CUDAHLL=$(BUILDS_FOLDER)$(TEST_OPEN_CUDAHLL)
+
 TEST_SAVE_STATS=$(TEST_FOLDER)saveStats
 BUILD_DIR_STATS_TEST=$(BUILDS_FOLDER)$(TEST_SAVE_STATS)
 
@@ -95,7 +101,7 @@ run-test-HLL:
         echo "ERROR: MATRICE PATH is not set! put MATRICE=PATH at the end"; \
         exit 1; \
     fi 
-	cd $(BUILD_DIR_OPEN_HLL) && ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
+	cd $(BUILD_DIR_OPEN_HLL) && valgrind ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
 
 
 build-test-stats:
@@ -155,3 +161,53 @@ run-test-fast:
 	    echo "All parameters are set. Running test..."; \
 		cd $(BUILD_DIR_TEST_FAST) && ./main $(CURRENT_DIR)/$(MATRICE) ;\
 	}
+
+
+run-test-cuda:
+	echo "Checking parameters..."
+	if [ -z "$(MATRICE)" ]; then \
+        echo "ERROR: MATRICE PATH is not set! put MATRICE=PATH at the end"; \
+        exit 1; \
+    fi 
+	cd $(BUILD_DIR_OPEN_CUDA) && ./Main $(CURRENT_DIR)/$(MATRICE) $(P)
+
+
+build-test-cuda:
+	mkdir -p $(BUILD_DIR_OPEN_CUDA)
+	cd $(BUILD_DIR_OPEN_CUDA) && cmake $(CURRENT_DIR)/$(TEST_OPEN_CUDA)
+	cd $(BUILD_DIR_OPEN_CUDA) && cmake --build .
+	#cd $(BUILD_DIR_OPEN_CUDA) && ./Main
+
+
+run-test-cudaHll:
+	echo "Checking parameters..."
+	if [ -z "$(MATRICE)" ]; then \
+        echo "ERROR: MATRICE PATH is not set! put MATRICE=PATH at the end"; \
+        exit 1; \
+    fi 
+	cd $(BUILD_DIR_OPEN_CUDAHLL) && ./Main $(CURRENT_DIR)/$(MATRICE) $(P) $(K)
+	
+
+
+build-test-cudaHll:
+	mkdir -p $(BUILD_DIR_OPEN_CUDAHLL)
+	cd $(BUILD_DIR_OPEN_CUDAHLL) &&  cmake $(CURRENT_DIR)/$(TEST_OPEN_CUDAHLL)
+	cd $(BUILD_DIR_OPEN_CUDAHLL) && cmake --build .
+	#cd $(BUILD_DIR_OPEN_CUDAHLL) && ./Main
+
+
+
+build-test-cudaHll2:
+	module load cuda/12.8 && \
+	mkdir -p $(BUILD_DIR_OPEN_CUDAHLL) && \
+	cd $(BUILD_DIR_OPEN_CUDAHLL) && \
+	cmake -DCMAKE_CUDA_ARCHITECTURES=75 $(CURRENT_DIR)/$(TEST_OPEN_CUDAHLL) && \
+	cmake --build .	
+
+
+
+
+
+
+
+
