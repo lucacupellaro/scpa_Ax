@@ -191,8 +191,8 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
     }
     //------------------------------CUDA CSR-----------------------------//
     {
-        //testVectors(20); era solo per testare cuda e funziona siiiiiiiiiiiiiiiiiiiiiiiiii
-   }
+        testVectors(20); 
+    }
     cleanup:
         freeMatHll(&matHll);   // Safe if matHll is NULL
         freeMatCsr(&csrMatrice);// Safe if csrMatrice is NULL
