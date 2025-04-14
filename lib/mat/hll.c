@@ -6,6 +6,8 @@
 #include <omp.h>
 #define DEBUG 0
 
+
+
 int convertRawToHll(struct MatriceRaw *matricePointer, int hackSizeP, struct MatriceHLL **hllP)
 {
     int totalRows = matricePointer->height;
@@ -294,7 +296,7 @@ int printHLL(struct MatriceHLL **hllP)
     return 0;
 }
 
-int __attribute__((optimize("O0"))) serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)// tolto if importante perche inizializando la memoria con calloc trova 0 invece di una cosa a caso quindi non ci sono problemi
+int serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)// tolto if importante perche inizializando la memoria con calloc trova 0 invece di una cosa a caso quindi non ci sono problemi
 {
 
   if (!mat  || !vec || !result)
@@ -347,28 +349,33 @@ int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
         return -1;
 
     
-    #pragma omp parallel for schedule(static)
-    for (int b = 0; b < mat->numBlocks; b++)
-    {
-        ELLPACK_Block *block = mat->blocks[b];
-        int globalRowStart = b * mat->HackSize;
-
-        //int thread_id = omp_get_thread_num();
-        //printf("Hello from thread %d\n", thread_id);
-        int maxnz = block->MAXNZ;
-        
-        for (int i = 0; i < block->M; i++) {
-            double t = 0.0;
-            int row_start = i * maxnz;  // Avoid recomputation in loop
-            #pragma omp simd reduction(+:t)
-            for (int j = 0; j < maxnz; j++) {
-                t += block->AS[row_start + j] * vec->vettore[block->JA[row_start + j]];
+        #pragma omp parallel
+        {
+            #pragma omp single nowait
+            {
+                for (int b = 0; b < mat->numBlocks; b++)
+                {
+                    #pragma omp task
+                    {
+                        ELLPACK_Block *block = mat->blocks[b];
+                        int globalRowStart = b * mat->HackSize;
+                        int maxnz = block->MAXNZ;
+                        for (int i = 0; i < block->M; i++) {
+                            double t = 0.0;
+                            int row_start = i * maxnz;
+                            #pragma omp simd reduction(+:t)
+                            for (int j = 0; j < maxnz; j++) {
+                                t += block->AS[row_start + j] * vec->vettore[block->JA[row_start + j]];
+                            }
+                            result->vettore[globalRowStart + i] = t;
+                        }
+                    }
+                }
             }
-            result->vettore[globalRowStart + i] = t;
+            #pragma omp taskwait
         }
-    }
 
-    return 0; // esecuzione corretta
+    return 0;
 }
 
 int freeMatHll(struct MatriceHLL **matricePointer) {
