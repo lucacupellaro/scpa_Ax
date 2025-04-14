@@ -6,6 +6,8 @@
 #include <omp.h>
 #define DEBUG 0
 
+
+
 int convertRawToHll(struct MatriceRaw *matricePointer, int hackSizeP, struct MatriceHLL **hllP)
 {
     int totalRows = matricePointer->height;
@@ -294,7 +296,7 @@ int printHLL(struct MatriceHLL **hllP)
     return 0;
 }
 
-int __attribute__((optimize("O3"))) serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)// tolto if importante perche inizializando la memoria con calloc trova 0 invece di una cosa a caso quindi non ci sono problemi
+int serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)// tolto if importante perche inizializando la memoria con calloc trova 0 invece di una cosa a caso quindi non ci sono problemi
 {
 
   if (!mat  || !vec || !result)
@@ -328,15 +330,15 @@ int __attribute__((optimize("O3"))) serialMultiplyHLL(struct MatriceHLL *mat, st
 
 int  hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, struct Vector *), struct MatriceHLL *hll, struct Vector *vec, struct Vector *result, double *execTime)
 {
-    clock_t t;
-    t = clock();
+    double t;
+    t = omp_get_wtime();
     int retunrE=multiplayer(hll, vec, result);
-    t = clock() - t;
-    (*execTime) = ((double)t) / CLOCKS_PER_SEC; // in seconds
+    t = omp_get_wtime() - t;
+    (*execTime) = t; // in seconds
     return retunrE;
 }
 
-int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
+int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
 {
 
     if (!mat || !vec || !result)
@@ -346,27 +348,29 @@ int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, st
     if (vec->righe != mat->totalCols || result->righe != mat->totalRows)
         return -1;
 
-       //#pragma pragma omp parallel(static)
-    for (int b = 0; b < mat->numBlocks; b++)
-    {
-        ELLPACK_Block *block = mat->blocks[b];
-        int globalRowStart = b * mat->HackSize;
 
-        //int thread_id = omp_get_thread_num();
-        //printf("Hello from thread %d\n", thread_id);
-        int maxnz = block->MAXNZ;
-        #pragma omp parallel for 
-        for (int i = 0; i < block->M; i++) {
-            double t = 0.0;
-            int row_start = i * maxnz;  // Avoid recomputation in loop
-            for (int j = 0; j < maxnz; j++) {
-                t += block->AS[row_start + j] * vec->vettore[block->JA[row_start + j]];
-            }
-            result->vettore[globalRowStart + i] = t;
-        }
-    }
+                #pragma omp parallel for schedule(static)
+                for (int b = 0; b < mat->numBlocks; b++)
+                {
+                    
+                        ELLPACK_Block *block = mat->blocks[b];
+                        int globalRowStart = b * mat->HackSize;
+                        int maxnz = block->MAXNZ;
 
-    return 0; // esecuzione corretta
+                        for (int i = 0; i < block->M; i++) {
+                            double t = 0.0;
+                            int row_start = i * maxnz;
+                            //#pragma omp simd reduction(+:t)
+                            for (int j = 0; j < maxnz; j++) {
+                                t += block->AS[row_start + j] * vec->vettore[block->JA[row_start + j]];
+                            }
+                            result->vettore[globalRowStart + i] = t;
+                        }
+                    
+                }
+        
+           
+    return 0;
 }
 
 int freeMatHll(struct MatriceHLL **matricePointer) {

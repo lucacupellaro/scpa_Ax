@@ -4,6 +4,7 @@
 #include "mmio.h"
 #include "matriciOpp.h"
 #include <time.h>
+#include <omp.h>
 #include <string.h>
 typedef struct TempStruct
 { // Defining a struct only for this function, for organizing the matrix in rows
@@ -90,10 +91,10 @@ int __attribute__((optimize("O0"))) serialCsrMult(struct MatriceCsr *csr, struct
     }
 }
 
-int __attribute__((optimize("O3"))) parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result)
+int parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result)
 {
     unsigned int nrows = vec->righe;
-#pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < nrows; i++)
     {
         //int thread_id = omp_get_thread_num();
@@ -219,11 +220,11 @@ int coaliscanceMatCsr(MatriceCsr * normale, MatriceCsr **sistemata) {
 
 int csrMultWithTime(int (*multiplayer)(struct MatriceCsr *, struct Vector *, struct Vector *), struct MatriceCsr *csr, struct Vector *vec, struct Vector *result, double *execTime)
 {
-    clock_t t;
-    t = clock();
+    double t;
+    t = omp_get_wtime();
     multiplayer(csr, vec, result);
-    t = clock() - t;
-    (*execTime) = ((double)t) / CLOCKS_PER_SEC; // in seconds
+    t = omp_get_wtime() - t;
+    (*execTime) = t; // in seconds
 }
 
 int freeMatCsr(struct MatriceCsr **matricePointer)
