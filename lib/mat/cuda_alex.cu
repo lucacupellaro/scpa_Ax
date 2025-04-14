@@ -74,7 +74,7 @@ void checkerror(){
 
 
 
-void allocateAndCopyMatriceCsrGpu( MatriceCsr *orgi,  MatriceCsr **mat) {
+void allocateAndCopyMatriceCsrGpu( MatriceCsr *orgi,  MatriceCsr **mat, int coal) {
         cudaMalloc((void**)mat, sizeof(MatriceCsr));
     
         unsigned int *d_iRP = NULL;
@@ -82,6 +82,9 @@ void allocateAndCopyMatriceCsrGpu( MatriceCsr *orgi,  MatriceCsr **mat) {
         double *d_valori = NULL;
     
         size_t size_iRP = (orgi->height + 1) * sizeof(unsigned int);
+        if(coal==1){
+            size_iRP=(orgi->height*2 ) * sizeof(unsigned int);
+        }
         size_t size_jValori = orgi->nz * sizeof(unsigned int);
         size_t size_valori = orgi->nz * sizeof(double);
     
@@ -195,7 +198,40 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
     int base = d_mat->iRP[realRow]; //start of array
     int rowDim = d_mat->iRP[realRow + 1] - base;
     double sum = 0.0;
+    #pragma unroll
+    for (int i = 0; (i + 1) * 32 <= rowDim; ++i) {
+        int col_index = d_mat->jValori[base + i * 32 + position];
+        double  matVal= d_mat->valori[base + i * 32 + position];
+        double vectVal= d_vec->vettore[col_index];
+        sum += matVal*vectVal;
+    }
 
+    int remaining = rowDim % 32;
+    if (remaining > 0) {
+        int start_of_remaining = base + rowDim - remaining;
+        if (position < remaining) {
+            int col_index = d_mat->jValori[start_of_remaining + position];
+            double  matVal= d_mat->valori[start_of_remaining + position];
+            double vectVal= d_vec->vettore[col_index];
+            sum += matVal*vectVal;
+        }
+    }
+    sum = warpReduceSum(sum);
+    if (position == 0) {
+        d_result->vettore[realRow] = sum; // Explicit cast if d_result is float
+    }
+}
+
+__global__ void crs_mat_32_way_coal(MatriceCsr *d_mat, Vector *d_vec, Vector *d_result) {
+    int id = blockIdx.x * blockDim.x + threadIdx.x; // id
+    int realRow = id >> 5; // Check row number dividing id % number of thread per warp 2^5
+    int position = id & 31; // get position inside warp
+
+    if (realRow >= d_mat->height) return; //exit if id is outisde of lines range
+    int base = d_mat->iRP[realRow*2]; //start of array
+    int rowDim = d_mat->iRP[realRow*2 + 1] - base;
+    double sum = 0.0;
+    #pragma unroll
     for (int i = 0; (i + 1) * 32 <= rowDim; ++i) {
         int col_index = d_mat->jValori[base + i * 32 + position];
         double  matVal= d_mat->valori[base + i * 32 + position];
@@ -232,7 +268,7 @@ __global__ void vectorMultiply(Vector *a, Vector *b, Vector *result) {
 int multCudaCSRKernelWarp(MatriceCsr *mat,Vector *vector,Vector *result,double *time,unsigned int threadsPerBlock){
     
     MatriceCsr *matG;
-    allocateAndCopyMatriceCsrGpu(mat,&matG);
+    allocateAndCopyMatriceCsrGpu(mat,&matG,0);
     Vector *vectorG;
     Vector *resultG;
     allocateAndCopyVector(vector,&vectorG);
@@ -252,11 +288,34 @@ int multCudaCSRKernelWarp(MatriceCsr *mat,Vector *vector,Vector *result,double *
     freeMatriceCsrGpu(&matG);
 }
 
+int multCudaCSRKernelWarpCoal(MatriceCsr *mat,Vector *vector,Vector *result,double *time,unsigned int threadsPerBlock){
+    
+    MatriceCsr *matG;
+    allocateAndCopyMatriceCsrGpu(mat,&matG,1);
+    Vector *vectorG;
+    Vector *resultG;
+    allocateAndCopyVector(vector,&vectorG);
+    allocateAndCopyVector(result,&resultG);
+
+    unsigned int rows=mat->height;
+    int N = vector->righe*32;
+    N=N+(threadsPerBlock-N%threadsPerBlock);
+    int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+   
+    CUDA_TIME((crs_mat_32_way_coal<<<blocksPerGrid,threadsPerBlock>>>(matG, vectorG, resultG)),time);
+    //CUDA_CHECK(cudaDeviceSynchronize());
+    
+    copyVectorBackToHost(result,resultG);
+    freeVectorGpu(&vectorG);
+    freeVectorGpu(&resultG);
+    freeMatriceCsrGpu(&matG);
+}
+
 
 int multCudaCSRKernelLinear(MatriceCsr *mat,Vector *vector,Vector *result,double *time,unsigned int threadsPerBlock){
     
     MatriceCsr *matG;
-    allocateAndCopyMatriceCsrGpu(mat,&matG);
+    allocateAndCopyMatriceCsrGpu(mat,&matG,0);
     Vector *vectorG;
     Vector *resultG;
     allocateAndCopyVector(vector,&vectorG);

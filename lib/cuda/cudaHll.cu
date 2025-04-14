@@ -278,7 +278,8 @@ int invokeKernel1(struct Vector *vect,
     cudaMalloc((void**)&d_mat, sizeof(struct FlatELLMatrix));
     cudaMemcpy(d_mat, cudaHllMat, sizeof(struct FlatELLMatrix), cudaMemcpyHostToDevice);
 
-    
+    double *temp=vect->vettore;
+
     double *d_vettore;
     int righex=vect->righe;
     cudaMalloc((void**)&d_vettore, sizeof(double) * vect->righe);
@@ -289,12 +290,12 @@ int invokeKernel1(struct Vector *vect,
     struct Vector *d_vect;
     cudaMalloc((void**)&d_vect, sizeof(struct Vector));
     cudaMemcpy(d_vect, vect, sizeof(struct Vector), cudaMemcpyHostToDevice);
-
+    vect->vettore = temp;
 
     double *d_result_vettore;
     cudaMalloc((void**)&d_result_vettore, sizeof(double) * result->righe);
  
-    double *temp=vect->vettore;
+    temp=result->vettore;
 
     result->vettore = d_result_vettore;
 
@@ -362,7 +363,6 @@ int invokeKernel1(struct Vector *vect,
     *time=time_sec;
   
    
-    vect->vettore=temp;
 
 
 

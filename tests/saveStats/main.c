@@ -53,8 +53,13 @@ int main(int argc, char *argv[]) {
     if (get_matrix_filenames(SCRIPT_COMMAND, &file_list) != 0) {
         return 1;
     }
-    print_matrix_file_list(&file_list);
-    
+    if(config.single_matrix_file==NULL){
+        print_matrix_file_list(&file_list);
+    }else{
+        file_list.names=malloc(sizeof(char *));
+        *file_list.names=config.single_matrix_file;
+        file_list.count=1;
+    }
     csv=initialize_csv_file(CSV_OUTPUT_FILE);
     if (csv==NULL){
         return 1;
@@ -69,8 +74,8 @@ int main(int argc, char *argv[]) {
 
     cleanup:
         close(csv);
-        cleanup_app_config(&config);
         cleanup_matrix_filenames(&file_list);
+        cleanup_app_config(&config);
 }
 
 
@@ -220,6 +225,30 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
     double time = 0;
     for (int i = 0; i < iterations; i++) {
         multCudaCSRKernelWarp( csrMatrice, vectorR, resultV, &time,256);
+        result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
+    }
+    if(areVectorsEqual(resultV,resultSerial)!=0){
+        printf("result cuda warp is borken");
+    }else{
+        append_csv_entry(csv,&result);
+    }
+    freeRandom(&resultV); 
+}
+
+MatriceCsr *coal;
+if( coaliscanceMatCsr(csrMatrice,&coal)==-1){
+        printf("error creating coalescent csr \n");
+        goto cleanup;
+};
+{
+    struct CsvEntry result;
+    struct Vector *resultV;
+    generateEmpty(rows, &resultV);
+    initializeCsvEntry(&result, matrix_name, "csr", "cudaWarpCoal", rows, 0, iterations);
+
+    double time = 0;
+    for (int i = 0; i < iterations; i++) {
+        multCudaCSRKernelWarpCoal( coal, vectorR, resultV, &time,256);
         result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     if(areVectorsEqual(resultV,resultSerial)!=0){
