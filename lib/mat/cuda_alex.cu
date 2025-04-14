@@ -203,7 +203,7 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
         int col_index = d_mat->jValori[base + i * 32 + position];
         double  matVal= d_mat->valori[base + i * 32 + position];
         double vectVal= d_vec->vettore[col_index];
-        sum += matVal*vectVal;
+        sum=fma(matVal,matVal,sum);
     }
 
     int remaining = rowDim % 32;
@@ -213,7 +213,7 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
             int col_index = d_mat->jValori[start_of_remaining + position];
             double  matVal= d_mat->valori[start_of_remaining + position];
             double vectVal= d_vec->vettore[col_index];
-            sum += matVal*vectVal;
+            sum=fma(matVal,matVal,sum);
         }
     }
     sum = warpReduceSum(sum);
@@ -225,13 +225,18 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
 __global__ void crs_mat_32_way_coal(MatriceCsr * __restrict__ d_mat, Vector * __restrict__ d_vec, Vector *d_result) {
     int id = blockIdx.x * blockDim.x + threadIdx.x; // id
     int realRow = id >> 5; // Check row number dividing id % number of thread per warp 2^5
-    int position = id & 31; // get position inside warp
+     // get position inside warp
 
-    if (realRow >= d_mat->height) return; //exit if id is outisde of lines range
-    int base = d_mat->iRP[realRow*2]; //start of array
-    int rowDim = d_mat->iRP[realRow*2 + 1] - base;
+     //exit if id is outisde of lines range
+
+    const int2* input_vec_ptr = reinterpret_cast<const int2*>(d_mat->iRP);
+    int2 loaded_ints = input_vec_ptr[realRow];
+    int base = loaded_ints.x; //start of array
+    int rowDim = loaded_ints.y ;
+    if (realRow >= d_mat->height) return;
     double sum = 0.0;
-    #pragma unroll
+    int position = id & 31;
+    rowDim-= base;
     for (int i = 0; (i + 1) * 32 <= rowDim; ++i) {
         int col_index = d_mat->jValori[base + i * 32 + position];
         double  matVal= d_mat->valori[base + i * 32 + position];
