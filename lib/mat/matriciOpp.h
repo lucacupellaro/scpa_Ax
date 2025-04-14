@@ -40,7 +40,7 @@ typedef struct MatriceCsr {
     unsigned int *jValori;  // Array di dimensione nz
     double *valori;         // Array di dimensione nz
 } MatriceCsr;
-
+int coaliscanceMatCsr(MatriceCsr * normale, MatriceCsr **sistemata);
 int parallelCsrMult(MatriceCsr *csr, Vector *vec, Vector *result);
 int serialCsrMult(MatriceCsr *csr, Vector *vec, Vector *result);
 int csrMultWithTime(int (*multiplayer)(MatriceCsr *, Vector *, Vector *),

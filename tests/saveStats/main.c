@@ -235,6 +235,30 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
     freeRandom(&resultV); 
 }
 
+MatriceCsr *coal;
+if( coaliscanceMatCsr(csrMatrice,&coal)==-1){
+        printf("error creating coalescent csr \n");
+        goto cleanup;
+};
+{
+    struct CsvEntry result;
+    struct Vector *resultV;
+    generateEmpty(rows, &resultV);
+    initializeCsvEntry(&result, matrix_name, "csr", "cudaWarpCoal", rows, 0, iterations);
+
+    double time = 0;
+    for (int i = 0; i < iterations; i++) {
+        multCudaCSRKernelWarpCoal( coal, vectorR, resultV, &time,256);
+        result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
+    }
+    if(areVectorsEqual(resultV,resultSerial)!=0){
+        printf("result cuda warp is borken");
+    }else{
+        append_csv_entry(csv,&result);
+    }
+    freeRandom(&resultV); 
+}
+
 // CONVERT HLL TO FLAT HLL
 FlatELLMatrix *cudaHllMat;
 int flatHll = convertHLLToFlatELL(&matHll, &cudaHllMat);

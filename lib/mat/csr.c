@@ -4,6 +4,7 @@
 #include "mmio.h"
 #include "matriciOpp.h"
 #include <time.h>
+#include <string.h>
 typedef struct TempStruct
 { // Defining a struct only for this function, for organizing the matrix in rows
     unsigned int elements;
@@ -105,6 +106,115 @@ int __attribute__((optimize("O3"))) parallelCsrMult(struct MatriceCsr *csr, stru
         }
         result->vettore[i] = sum;
     }
+}
+
+
+#define PADDING 32
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int coaliscanceMatCsr(MatriceCsr * normale, MatriceCsr **sistemata) {
+    if (normale == NULL || sistemata == NULL) {
+        fprintf(stderr, "Errore: Puntatori di input non validi.\n");
+        return -1;
+    }
+    *sistemata = NULL; 
+
+    unsigned int *paddings = malloc(sizeof(unsigned int) * normale->height);
+    if (paddings == NULL) {
+        fprintf(stderr, "Errore: Allocazione memoria fallita per paddings.\n");
+        return -1;
+    }
+
+    unsigned int totalpad = 0;
+    for (int i = 0; i < normale->height; i++) {
+        unsigned int elements_in_row = normale->iRP[i + 1] - normale->iRP[i];
+        unsigned int pad = PADDING - (elements_in_row % PADDING);
+        pad = (pad == PADDING) ? 0 : pad; 
+        paddings[i] = pad;
+        totalpad += pad;
+    }
+
+    *sistemata = malloc(sizeof(MatriceCsr));
+    if (*sistemata == NULL) {
+        fprintf(stderr, "Errore: Allocazione memoria fallita per la struttura sistemata.\n");
+        free(paddings); 
+        return -1;
+    }
+
+    MatriceCsr *sistemataP = *sistemata;
+    sistemataP->height = normale->height;
+    sistemataP->width = normale->width;
+    sistemataP->nz = normale->nz+totalpad; 
+    sistemataP->valori = NULL;  
+    sistemataP->jValori = NULL;
+    sistemataP->iRP = NULL;
+
+    unsigned int total_elements_padded = sistemataP->nz;
+
+    sistemataP->valori = malloc(sizeof(double) * total_elements_padded);
+    if (sistemataP->valori == NULL) {
+        fprintf(stderr, "Errore: Allocazione memoria fallita per sistemataP->valori.\n");
+        free(paddings);
+        free(*sistemata); // Free the main struct
+        *sistemata = NULL; // Avoid dangling pointer
+        return -1;
+    }
+
+    sistemataP->jValori = malloc(sizeof(int) * total_elements_padded);
+    if (sistemataP->jValori == NULL) {
+        fprintf(stderr, "Errore: Allocazione memoria fallita per sistemataP->jValori.\n");
+        free(paddings);
+        free(sistemataP->valori); // Clean up previous allocation
+        free(*sistemata);
+        *sistemata = NULL;
+        return -1;
+    }
+
+    // Allocate iRP for pairs of (start, end_padded) indices
+    sistemataP->iRP = malloc(sizeof(int) * (sistemataP->height * 2));
+    if (sistemataP->iRP == NULL) {
+        fprintf(stderr, "Errore: Allocazione memoria fallita per sistemataP->iRP.\n");
+        free(paddings);
+        free(sistemataP->valori);
+        free(sistemataP->jValori);
+        free(*sistemata);
+        *sistemata = NULL;
+        return -1;
+    }
+
+
+    unsigned int current_pos = 0;
+    for (int i = 0; i < normale->height; i++) {
+        unsigned int elements = normale->iRP[i + 1] - normale->iRP[i];
+        unsigned int pad = paddings[i];
+        unsigned int baseNormale = normale->iRP[i];
+
+        sistemataP->iRP[i * 2] = current_pos; // Start index for row i
+
+        // Copy existing values and column indices
+        if (elements > 0) {
+             memcpy(&(sistemataP->valori[current_pos]), &(normale->valori[baseNormale]), sizeof(double) * elements);
+             memcpy(&(sistemataP->jValori[current_pos]), &(normale->jValori[baseNormale]), sizeof(int) * elements);
+        }
+
+        current_pos += elements;
+
+        // Add padding
+        if (pad > 0) {
+          int last_col_index = (elements > 0) ? normale->jValori[baseNormale + elements - 1] : -1; // Or 0, depending on convention
+            for (int p = 0; p < pad; p++) {
+                sistemataP->jValori[current_pos] = last_col_index; // Pad with last valid column index
+                sistemataP->valori[current_pos] = 0.0;           // Pad with zero value
+                current_pos++;
+            }
+        }
+        sistemataP->iRP[i * 2 + 1] = current_pos; // End index (exclusive) for padded row i
+    }
+
+    free(paddings); // Free the temporary padding array
+    return 0; // Success
 }
 
 int csrMultWithTime(int (*multiplayer)(struct MatriceCsr *, struct Vector *, struct Vector *), struct MatriceCsr *csr, struct Vector *vec, struct Vector *result, double *execTime)
