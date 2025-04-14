@@ -203,7 +203,7 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
         int col_index = d_mat->jValori[base + i * 32 + position];
         double  matVal= d_mat->valori[base + i * 32 + position];
         double vectVal= d_vec->vettore[col_index];
-        sum=fma(matVal,matVal,sum);
+        sum += matVal*vectVal;
     }
 
     int remaining = rowDim % 32;
@@ -213,7 +213,7 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
             int col_index = d_mat->jValori[start_of_remaining + position];
             double  matVal= d_mat->valori[start_of_remaining + position];
             double vectVal= d_vec->vettore[col_index];
-            sum=fma(matVal,matVal,sum);
+            sum += matVal*vectVal;
         }
     }
     sum = warpReduceSum(sum);
