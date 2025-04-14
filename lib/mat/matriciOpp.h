@@ -13,7 +13,7 @@ typedef struct Vector {
     unsigned int righe;
     double *vettore;
 } Vector;
-
+int calculate_vector_differences(const Vector *vec1, const Vector *vec2, double *sum_abs_diff, double *perc_diff);
 int areVectorsEqual( Vector *v1,  Vector *v2);
 int generate_random_vector(int seed, unsigned int righe, Vector **pointerToVector);
 int freeRandom(Vector **pointerToVector);

@@ -127,7 +127,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
     {   
         struct CsvEntry result;
         generateEmpty(rows, &resultSerial);
-        initializeCsvEntry(&result, matrix_name, "csr", "serial", 1, 0, iterations);
+        initializeCsvEntry(&result, matrix_name, "csr", "serial","simple_linear", mat->nz, 0, 1,0,iterations,0.0,0.0);
 
         double time = 0;
         for (int i = 0; i < iterations; i++) {
@@ -145,8 +145,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         struct CsvEntry result;
         struct Vector *resultV;
         generateEmpty(rows, &resultV);
-        initializeCsvEntry(&result, matrix_name, "csr", "openMp", thread, 0, iterations);
-
+        initializeCsvEntry(&result, matrix_name, "csr", "openMp","simple",mat->nz,0,thread, 0, iterations,0.0,0.0);
         double time = 0;
         for (int i = 0; i < iterations; i++) {
             csrMultWithTime(&parallelCsrMult, csrMatrice, vectorR, resultV, &time);
@@ -155,6 +154,11 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         if(areVectorsEqual(resultV,resultSerial)!=0){
             printf("result openMP csr serial is borken");
         }else{
+            double diff;
+            double percentage;
+            calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
+            result.errorPercentage=percentage;
+            result.errorValue=diff;
             append_csv_entry(csv,&result);
         }
         freeRandom(&resultV);
@@ -164,7 +168,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         struct Vector *resultV;
         struct CsvEntry result;
         generateEmpty(rows, &resultV);
-        initializeCsvEntry(&result, matrix_name, "hll", "serial", 1, hack, iterations);
+        initializeCsvEntry(&result, matrix_name, "hll", "serial","simple",mat->nz, hack,1,0 , iterations,0.0,0.0);
 
         double time = 0;
         for (int i = 0; i < iterations; i++) {
@@ -174,6 +178,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         if(areVectorsEqual(resultV,resultSerial)!=0){
             printf("result hll serial is borken");
         }else{
+           
             append_csv_entry(csv,&result);
         }
         freeRandom(&resultV);
@@ -186,7 +191,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         struct CsvEntry result;
         struct Vector *resultV;
         generateEmpty(rows, &resultV);
-        initializeCsvEntry(&result, matrix_name, "hll", "openMp", thread, hack, iterations);
+        initializeCsvEntry(&result, matrix_name, "hll", "openMp","simple",mat->nz, hack,thread, 0, iterations,0.0,0.0);
 
         double time = 0;
         for (int i = 0; i < iterations; i++) {
@@ -196,78 +201,99 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         if(areVectorsEqual(resultV,resultSerial)!=0){
             printf("result hll openMP is borken");
         }else{
+            double diff;
+            double percentage;
+            calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
+            result.errorPercentage=percentage;
+            result.errorValue=diff;
             append_csv_entry(csv,&result);
         }
         freeRandom(&resultV);
     }
+
 //------------------------------CUDA CSR  SERIAL KERNEL-----------------------------//
-{
+for(unsigned int  j=256;j<257;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "csr", "cudaSerial", rows, 0, iterations);
+    initializeCsvEntry(&result, matrix_name, "csr", "cuda","simple_serial",mat->nz, 0, mat->height,j ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
-        multCudaCSRKernelLinear( csrMatrice, vectorR, resultV, &time,256);
+        multCudaCSRKernelLinear( csrMatrice, vectorR, resultV, &time,j);
         result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     if(areVectorsEqual(resultV,resultSerial)!=0){
         printf("result cuda serial csr is borken");
     }else{
+        double diff;
+        double percentage;
+        calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
+        result.errorPercentage=percentage;
+        result.errorValue=diff;
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
 }
 //------------------------------CUDA CSR  WARP KERNEL-----------------------------//
-{
+for(unsigned int  j=256;j<257;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "csr", "cudaWarp", rows, 0, iterations);
+    initializeCsvEntry(&result, matrix_name, "csr", "cuda","warp",mat->nz, 0, mat->height,j ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
-        multCudaCSRKernelWarp( csrMatrice, vectorR, resultV, &time,256);
+        multCudaCSRKernelWarp( csrMatrice, vectorR, resultV, &time,j);
         result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     if(areVectorsEqual(resultV,resultSerial)!=0){
         printf("result cuda warp is borken");
     }else{
+        double diff;
+        double percentage;
+        calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
+        result.errorPercentage=percentage;
+        result.errorValue=diff;
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
 }
 
 
-
-
-{
-    MatriceCsr *coal;
+MatriceCsr *coal;
 if( coaliscanceMatCsr(csrMatrice,&coal)==-1){
         printf("error creating coalescent csr \n");
         exit(-1);
 };
 
+for(unsigned int  j=256;j<257;j=j*2){
+
+
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "csr", "cudaWarpCoal", rows, 0, iterations);
+    initializeCsvEntry(&result, matrix_name, "csr", "cuda","warp_coalescent",mat->nz, 0, mat->height,j ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
-        multCudaCSRKernelWarpCoal( coal, vectorR, resultV, &time,256);
+        multCudaCSRKernelWarpCoal( coal, vectorR, resultV, &time,j);
         result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     if(areVectorsEqual(resultV,resultSerial)!=0){
         printf("result cuda warp is borken");
     }else{
+        double diff;
+        double percentage;
+        calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
+        result.errorPercentage=percentage;
+        result.errorValue=diff;
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
-    freeMatCsr(&coal);
+    
 }
-
+freeMatCsr(&coal);
 // CONVERT HLL TO FLAT HLL
 FlatELLMatrix *cudaHllMat;
 int flatHll = convertHLLToFlatELL(&matHll, &cudaHllMat);
@@ -285,7 +311,7 @@ if (flatHll != 0){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "hll", "cudaKernel1", rows, 0, iterations);
+    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel1",mat->nz, hack, mat->height,0 ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
@@ -299,6 +325,10 @@ if (flatHll != 0){
     if(areVectorsEqual(resultV,resultSerial)!=0){
         printf("result hll  is borken for kernel1 \n");
     }else{
+        double diff;
+        double percentage;
+        calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
+        
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
@@ -308,7 +338,7 @@ if (flatHll != 0){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "hll", "cudaKernel2", rows, 0, iterations);
+    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel2",mat->nz, hack, mat->height,0 ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
@@ -322,6 +352,10 @@ if (flatHll != 0){
     if(areVectorsEqual(resultV,resultSerial)!=0){
         printf("result hll  is borken for kernel2 \n");
     }else{
+        double diff;
+        double percentage;
+        calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
+        
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
@@ -331,7 +365,7 @@ if (flatHll != 0){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "hll", "cudaKernel3", rows, 0, iterations);
+    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel3",mat->nz, hack, mat->height,0 ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
@@ -345,6 +379,10 @@ if (flatHll != 0){
     if(areVectorsEqual(resultV,resultSerial)!=0){
         printf("result hll  is borken for kernel3 \n");
     }else{
+        double diff;
+        double percentage;
+        calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
+        
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
