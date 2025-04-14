@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "matriciOpp.h"
-
+#include "cuda_alex.h"
 #include "cuda_luca.h"
 #define WARP_SIZE 32
 
