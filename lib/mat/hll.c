@@ -348,11 +348,8 @@ int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
     if (vec->righe != mat->totalCols || result->righe != mat->totalRows)
         return -1;
 
-    
-        #pragma omp parallel
-        {
-            #pragma omp single nowait
-            {
+
+                #pragma omp parallel for schedule(static)
                 for (int b = 0; b < mat->numBlocks; b++)
                 {
                     #pragma omp task
@@ -371,10 +368,8 @@ int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
                         }
                     }
                 }
-            }
-            #pragma omp taskwait
-        }
-
+        
+           
     return 0;
 }
 
