@@ -53,8 +53,13 @@ int main(int argc, char *argv[]) {
     if (get_matrix_filenames(SCRIPT_COMMAND, &file_list) != 0) {
         return 1;
     }
-    print_matrix_file_list(&file_list);
-    
+    if(config.single_matrix_file==NULL){
+        print_matrix_file_list(&file_list);
+    }else{
+        file_list.names=malloc(sizeof(char *));
+        *file_list.names=config.single_matrix_file;
+        file_list.count=1;
+    }
     csv=initialize_csv_file(CSV_OUTPUT_FILE);
     if (csv==NULL){
         return 1;
@@ -69,8 +74,8 @@ int main(int argc, char *argv[]) {
 
     cleanup:
         close(csv);
-        cleanup_app_config(&config);
         cleanup_matrix_filenames(&file_list);
+        cleanup_app_config(&config);
 }
 
 
