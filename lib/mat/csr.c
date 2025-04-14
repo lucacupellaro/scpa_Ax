@@ -4,6 +4,7 @@
 #include "mmio.h"
 #include "matriciOpp.h"
 #include <time.h>
+#include <omp.h>
 typedef struct TempStruct
 { // Defining a struct only for this function, for organizing the matrix in rows
     unsigned int elements;
@@ -89,10 +90,10 @@ int __attribute__((optimize("O0"))) serialCsrMult(struct MatriceCsr *csr, struct
     }
 }
 
-int __attribute__((optimize("O3"))) parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result)
+int __attribute__((optimize("O0"))) parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *result)
 {
     unsigned int nrows = vec->righe;
-#pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < nrows; i++)
     {
         //int thread_id = omp_get_thread_num();

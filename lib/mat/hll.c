@@ -294,7 +294,7 @@ int printHLL(struct MatriceHLL **hllP)
     return 0;
 }
 
-int __attribute__((optimize("O3"))) serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)// tolto if importante perche inizializando la memoria con calloc trova 0 invece di una cosa a caso quindi non ci sono problemi
+int __attribute__((optimize("O0"))) serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)// tolto if importante perche inizializando la memoria con calloc trova 0 invece di una cosa a caso quindi non ci sono problemi
 {
 
   if (!mat  || !vec || !result)
@@ -336,7 +336,7 @@ int  hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, st
     return retunrE;
 }
 
-int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
+int __attribute__((optimize("O0"))) openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
 {
 
     if (!mat || !vec || !result)
@@ -346,7 +346,7 @@ int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, st
     if (vec->righe != mat->totalCols || result->righe != mat->totalRows)
         return -1;
 
-       //#pragma pragma omp parallel(static)
+    #pragma omp parallel for schedule(static)
     for (int b = 0; b < mat->numBlocks; b++)
     {
         ELLPACK_Block *block = mat->blocks[b];
@@ -355,7 +355,7 @@ int __attribute__((optimize("O3"))) openMpMultiplyHLL(struct MatriceHLL *mat, st
         //int thread_id = omp_get_thread_num();
         //printf("Hello from thread %d\n", thread_id);
         int maxnz = block->MAXNZ;
-        #pragma omp parallel for 
+        #pragma omp simd
         for (int i = 0; i < block->M; i++) {
             double t = 0.0;
             int row_start = i * maxnz;  // Avoid recomputation in loop
