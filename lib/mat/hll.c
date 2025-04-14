@@ -330,11 +330,11 @@ int serialMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
 
 int  hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, struct Vector *), struct MatriceHLL *hll, struct Vector *vec, struct Vector *result, double *execTime)
 {
-    clock_t t;
-    t = clock();
+    double t;
+    t = omp_get_wtime();
     int retunrE=multiplayer(hll, vec, result);
-    t = clock() - t;
-    (*execTime) = ((double)t) / CLOCKS_PER_SEC; // in seconds
+    t = omp_get_wtime() - t;
+    (*execTime) = t; // in seconds
     return retunrE;
 }
 

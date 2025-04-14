@@ -110,11 +110,11 @@ int parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *r
 
 int csrMultWithTime(int (*multiplayer)(struct MatriceCsr *, struct Vector *, struct Vector *), struct MatriceCsr *csr, struct Vector *vec, struct Vector *result, double *execTime)
 {
-    clock_t t;
-    t = clock();
+    double t;
+    t = omp_get_wtime();
     multiplayer(csr, vec, result);
-    t = clock() - t;
-    (*execTime) = ((double)t) / CLOCKS_PER_SEC; // in seconds
+    t = omp_get_wtime() - t;
+    (*execTime) = t; // in seconds
 }
 
 int freeMatCsr(struct MatriceCsr **matricePointer)
