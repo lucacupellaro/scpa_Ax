@@ -207,7 +207,7 @@ int coaliscanceMatCsr(MatriceCsr * normale, MatriceCsr **sistemata) {
             for (int p = 0; p < pad; p++) {
                 sistemataP->jValori[current_pos] = last_col_index; // Pad with last valid column index
                 sistemataP->valori[current_pos] = 0.0;           // Pad with zero value
-                current_pos++;
+                current_pos+=1;
             }
         }
         sistemataP->iRP[i * 2 + 1] = current_pos; // End index (exclusive) for padded row i

@@ -222,7 +222,7 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
     }
 }
 
-__global__ void crs_mat_32_way_coal(MatriceCsr *d_mat, Vector *d_vec, Vector *d_result) {
+__global__ void crs_mat_32_way_coal(MatriceCsr * __restrict__ d_mat, Vector * __restrict__ d_vec, Vector *d_result) {
     int id = blockIdx.x * blockDim.x + threadIdx.x; // id
     int realRow = id >> 5; // Check row number dividing id % number of thread per warp 2^5
     int position = id & 31; // get position inside warp

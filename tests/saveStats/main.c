@@ -50,14 +50,18 @@ int main(int argc, char *argv[]) {
     } 
     print_app_config(&config);      //Troppo bello pero non l'ho fatta i
     
-    if (get_matrix_filenames(SCRIPT_COMMAND, &file_list) != 0) {
-        return 1;
-    }
+   
     if(config.single_matrix_file==NULL){
+        if (get_matrix_filenames(SCRIPT_COMMAND, &file_list) != 0) {
+            return 1;
+        }
         print_matrix_file_list(&file_list);
+
     }else{
         file_list.names=malloc(sizeof(char *));
-        *file_list.names=config.single_matrix_file;
+        (*file_list.names)=malloc(strlen(config.single_matrix_file)*sizeof(char));
+        memcpy(*file_list.names,config.single_matrix_file,strlen(config.single_matrix_file)*sizeof(char));
+        //*file_list.names=config.single_matrix_file;
         file_list.count=1;
     }
     csv=initialize_csv_file(CSV_OUTPUT_FILE);
@@ -235,12 +239,16 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
     freeRandom(&resultV); 
 }
 
-MatriceCsr *coal;
+
+
+
+{
+    MatriceCsr *coal;
 if( coaliscanceMatCsr(csrMatrice,&coal)==-1){
         printf("error creating coalescent csr \n");
-        goto cleanup;
+        exit(-1);
 };
-{
+
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
@@ -257,11 +265,16 @@ if( coaliscanceMatCsr(csrMatrice,&coal)==-1){
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
+    freeMatCsr(&coal);
 }
 
 // CONVERT HLL TO FLAT HLL
 FlatELLMatrix *cudaHllMat;
 int flatHll = convertHLLToFlatELL(&matHll, &cudaHllMat);
+
+
+
+
 if (flatHll != 0){
         printf("Error while converting to flat format result vector\n");
         return flatHll;

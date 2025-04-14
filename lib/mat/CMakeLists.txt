@@ -10,6 +10,7 @@ file(GLOB Sources *.h *.c *.cu)
 
 add_library(matlib STATIC ${Sources})
 set_target_properties(matlib PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+target_compile_options(matlib PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--generate-line-info>)
 
 target_include_directories(matlib
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}

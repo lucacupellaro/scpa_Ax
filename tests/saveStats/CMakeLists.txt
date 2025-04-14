@@ -29,6 +29,7 @@ target_link_libraries(matlib PUBLIC cudart)
 
 # Create Main executable
 add_executable(Main main.c)
+target_compile_options(matlib PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--generate-line-info>)
 
 # Link OpenMP and matlib to Main
 if(OpenMP_C_FOUND)
