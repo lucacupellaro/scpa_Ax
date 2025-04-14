@@ -109,6 +109,7 @@ void append_csv_entry(FILE *file, const struct CsvEntry *entry)
                               j,
                               entry->measure[j]
                               );
+        fflush(file);
 
         if (written < 0) {
              perror("Error writing entry data to file");

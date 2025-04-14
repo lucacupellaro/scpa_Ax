@@ -144,7 +144,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
             result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
         if(areVectorsEqual(resultV,resultSerial)!=0){
-            printf("result hll serial is borken");
+            printf("result openMP csr serial is borken");
         }else{
             append_csv_entry(csv,&result);
         }
@@ -185,7 +185,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
             result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
         }
         if(areVectorsEqual(resultV,resultSerial)!=0){
-            printf("result hll serial is borken");
+            printf("result hll openMP is borken");
         }else{
             append_csv_entry(csv,&result);
         }
@@ -204,7 +204,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     if(areVectorsEqual(resultV,resultSerial)!=0){
-        printf("result hll serial is borken");
+        printf("result cuda serial csr is borken");
     }else{
         append_csv_entry(csv,&result);
     }
@@ -223,7 +223,7 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
         result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     if(areVectorsEqual(resultV,resultSerial)!=0){
-        printf("result hll serial is borken");
+        printf("result cuda warp is borken");
     }else{
         append_csv_entry(csv,&result);
     }
@@ -255,7 +255,53 @@ if (flatHll != 0){
         result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
     }
     if(areVectorsEqual(resultV,resultSerial)!=0){
-        printf("result hll serial is borken");
+        printf("result hll  is borken for kernel1 \n");
+    }else{
+        append_csv_entry(csv,&result);
+    }
+    freeRandom(&resultV); 
+}
+//------------------------------CUDA HLL  2-----------------------------//
+{
+    struct CsvEntry result;
+    struct Vector *resultV;
+    generateEmpty(rows, &resultV);
+    initializeCsvEntry(&result, matrix_name, "hll", "cudaKernel2", rows, 0, iterations);
+
+    double time = 0;
+    for (int i = 0; i < iterations; i++) {
+        int booo = invokeKernel2(vectorR, resultV, cudaHllMat, matHll, hack, &time);// lu segmentation fault qui
+        if(booo!=0){
+           printf("kernel 1 crashed\n");
+            exit(1);
+        }
+        result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
+    }
+    if(areVectorsEqual(resultV,resultSerial)!=0){
+        printf("result hll  is borken for kernel2 \n");
+    }else{
+        append_csv_entry(csv,&result);
+    }
+    freeRandom(&resultV); 
+}
+//------------------------------CUDA HLL  3-----------------------------//
+{
+    struct CsvEntry result;
+    struct Vector *resultV;
+    generateEmpty(rows, &resultV);
+    initializeCsvEntry(&result, matrix_name, "hll", "cudaKernel3", rows, 0, iterations);
+
+    double time = 0;
+    for (int i = 0; i < iterations; i++) {
+        int result_ = invokeKernel3(vectorR, resultV, cudaHllMat, matHll, hack, &time);// lu segmentation fault qui
+        if(result_!=0){
+           printf("kernel 1 crashed\n");
+            exit(1);
+        }
+        result.measure[i] = 2.0 * mat->nz / (time * 1000000000);
+    }
+    if(areVectorsEqual(resultV,resultSerial)!=0){
+        printf("result hll  is borken for kernel3 \n");
     }else{
         append_csv_entry(csv,&result);
     }
