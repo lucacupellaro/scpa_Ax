@@ -336,7 +336,7 @@ int  hllMultWithTime(int (*multiplayer)(struct MatriceHLL *, struct Vector *, st
     return retunrE;
 }
 
-int __attribute__((optimize("O0"))) openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
+int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector *result)
 {
 
     if (!mat || !vec || !result)
@@ -346,6 +346,7 @@ int __attribute__((optimize("O0"))) openMpMultiplyHLL(struct MatriceHLL *mat, st
     if (vec->righe != mat->totalCols || result->righe != mat->totalRows)
         return -1;
 
+    
     #pragma omp parallel for schedule(static)
     for (int b = 0; b < mat->numBlocks; b++)
     {
@@ -355,10 +356,11 @@ int __attribute__((optimize("O0"))) openMpMultiplyHLL(struct MatriceHLL *mat, st
         //int thread_id = omp_get_thread_num();
         //printf("Hello from thread %d\n", thread_id);
         int maxnz = block->MAXNZ;
-        #pragma omp simd
+        
         for (int i = 0; i < block->M; i++) {
             double t = 0.0;
             int row_start = i * maxnz;  // Avoid recomputation in loop
+            #pragma omp simd reduction(+:t)
             for (int j = 0; j < maxnz; j++) {
                 t += block->AS[row_start + j] * vec->vettore[block->JA[row_start + j]];
             }
