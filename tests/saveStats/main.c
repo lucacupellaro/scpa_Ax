@@ -267,7 +267,7 @@ if( coaliscanceMatCsr(csrMatrice,&coal)==-1){
         exit(-1);
 };
 
-for(unsigned int  j=126;j<200;j=j*2){
+for(unsigned int  j=32;j<200;j=j*2){
 
 
     struct CsvEntry result;
@@ -307,7 +307,7 @@ if (flatHll != 0){
 }
 
 //------------------------------CUDA HLL  1-----------------------------//
-for(unsigned int  j=126;j<200;j=j*2){
+for(unsigned int  j=64;j<200;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
@@ -335,7 +335,7 @@ for(unsigned int  j=126;j<200;j=j*2){
     freeRandom(&resultV); 
 }
 //------------------------------CUDA HLL  2-----------------------------//
-for(unsigned int  j=126;j<200;j=j*2){
+for(unsigned int  j=64;j<200;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
@@ -363,7 +363,7 @@ for(unsigned int  j=126;j<200;j=j*2){
     freeRandom(&resultV); 
 }
 //------------------------------CUDA HLL  3-----------------------------//
-for(unsigned int  j=126;j<200;j=j*2){
+for(unsigned int  j=64;j<200;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
