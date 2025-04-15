@@ -349,7 +349,7 @@ int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
         return -1;
 
 
-                #pragma omp parallel for schedule(static)
+                
                 for (int b = 0; b < mat->numBlocks; b++)
                 {
                     
@@ -357,10 +357,12 @@ int openMpMultiplyHLL(struct MatriceHLL *mat, struct Vector *vec, struct Vector 
                         int globalRowStart = b * mat->HackSize;
                         int maxnz = block->MAXNZ;
 
+
+                        #pragma omp parallel for schedule(static)
                         for (int i = 0; i < block->M; i++) {
                             double t = 0.0;
                             int row_start = i * maxnz;
-                            //#pragma omp simd reduction(+:t)
+                            #pragma omp simd
                             for (int j = 0; j < maxnz; j++) {
                                 t += block->AS[row_start + j] * vec->vettore[block->JA[row_start + j]];
                             }
