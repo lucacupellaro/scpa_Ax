@@ -173,7 +173,7 @@ void append_csv_entry(FILE *file, const CsvEntry *entry)
              // return; // Uncomment to stop after the first write error for this entry
         }
     }
-    freeCsvEntry(entry);
+
     // Flushing after the loop might be more efficient than flushing every line
     fflush(file);
 }

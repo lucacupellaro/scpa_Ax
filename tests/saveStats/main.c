@@ -307,15 +307,15 @@ if (flatHll != 0){
 }
 
 //------------------------------CUDA HLL  1-----------------------------//
-for(unsigned int  j=32;j<200;j=j*2){
+{
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel1",mat->nz, hack, mat->height,j ,iterations,0.0,0.0);
+    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel1",mat->nz, hack, mat->height,0 ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
-        int result_ = invokeKernel1(vectorR, resultV, cudaHllMat, matHll, hack, &time,j);// lu segmentation fault qui
+        int result_ = invokeKernel1(vectorR, resultV, cudaHllMat, matHll, hack, &time);// lu segmentation fault qui
         if(result_!=0){
            printf("kernel 1 crashed\n");
             exit(1);
@@ -334,15 +334,15 @@ for(unsigned int  j=32;j<200;j=j*2){
     freeRandom(&resultV); 
 }
 //------------------------------CUDA HLL  2-----------------------------//
-for(unsigned int  j=32;j<200;j=j*2){
+{
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel2",mat->nz, hack, mat->height,j ,iterations,0.0,0.0);
+    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel2",mat->nz, hack, mat->height,0 ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
-        int booo = invokeKernel2(vectorR, resultV, cudaHllMat, matHll, hack, &time,j);// lu segmentation fault qui
+        int booo = invokeKernel2(vectorR, resultV, cudaHllMat, matHll, hack, &time);// lu segmentation fault qui
         if(booo!=0){
            printf("kernel 1 crashed\n");
             exit(1);
@@ -361,15 +361,15 @@ for(unsigned int  j=32;j<200;j=j*2){
     freeRandom(&resultV); 
 }
 //------------------------------CUDA HLL  3-----------------------------//
-for(unsigned int  j=32;j<200;j=j*2){
+{
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
-    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel3",mat->nz, hack, mat->height,j ,iterations,0.0,0.0);
+    initializeCsvEntry(&result, matrix_name, "hll", "cuda","kernel3",mat->nz, hack, mat->height,0 ,iterations,0.0,0.0);
 
     double time = 0;
     for (int i = 0; i < iterations; i++) {
-        int result_ = invokeKernel3(vectorR, resultV, cudaHllMat, matHll, hack, &time,j);// lu segmentation fault qui
+        int result_ = invokeKernel3(vectorR, resultV, cudaHllMat, matHll, hack, &time);// lu segmentation fault qui
         if(result_!=0){
            printf("kernel 1 crashed\n");
             exit(1);

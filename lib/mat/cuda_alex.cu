@@ -183,6 +183,7 @@ __global__ void csr_matvec_mul(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
 
 __inline__ __device__
 double warpReduceSum(double val) {
+    #pragma unroll
     for (int offset = 16; offset > 0; offset /= 2)
         val += __shfl_down_sync(0xFFFFFFFF, val, offset);
     return val;
@@ -197,6 +198,7 @@ __global__ void crs_mat_32_way(MatriceCsr *d_mat, Vector *d_vec, Vector *d_resul
     int base = d_mat->iRP[realRow]; //start of array
     int rowDim = d_mat->iRP[realRow + 1] - base;
     double sum = 0.0;
+    #pragma unroll
     for (int i = 0; (i + 1) * 32 <= rowDim; ++i) {
         int col_index = d_mat->jValori[base + i * 32 + position];
         double  matVal= d_mat->valori[base + i * 32 + position];
@@ -227,24 +229,20 @@ __global__ void crs_mat_32_way_coal(MatriceCsr * __restrict__ d_mat, Vector * __
 
      //exit if id is outisde of lines range
 
-    
-    int base = d_mat->iRP[realRow]; //start of array
-    int rowDim = d_mat->iRP[realRow+1];
+    const int2* input_vec_ptr = reinterpret_cast<const int2*>(d_mat->iRP);
+    int2 loaded_ints = input_vec_ptr[realRow];
+    int base = loaded_ints.x; //start of array
+    int rowDim = loaded_ints.y ;
     if (realRow >= d_mat->height) return;
     double sum = 0.0;
     int position = id & 31;
-    //rowDim-= base;
-    {
-        int i=0;
-    do{
+    rowDim-= base;
+    for (int i = 0; (i + 1) * 32 <= rowDim; ++i) {
         int col_index = d_mat->jValori[base + i * 32 + position];
         double  matVal= d_mat->valori[base + i * 32 + position];
         double vectVal= d_vec->vettore[col_index];
         sum += matVal*vectVal;
-        i++;
-    }while((i + 1) * 32 <= rowDim-base);
     }
-
 
     int remaining = rowDim % 32;
     if (remaining > 0) {

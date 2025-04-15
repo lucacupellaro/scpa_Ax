@@ -245,7 +245,7 @@ __global__ void matvec_flatell_kernel_v3(FlatELLMatrix *dMat, double *x, double 
 
 int invokeKernel1(struct Vector *vect,
         struct Vector *result,
-        struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack, double *time, int threadXblock ){
+        struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack, double *time ){
 
         cudaEvent_t start,stop;
         
@@ -316,7 +316,7 @@ int invokeKernel1(struct Vector *vect,
         
     
 
-        int block_size = threadXblock;
+        int block_size = 128;
         int num_threads = matHll->numBlocks * hack;
         int grid_size = (num_threads + block_size - 1) / block_size;
     
@@ -378,7 +378,7 @@ int invokeKernel1(struct Vector *vect,
 
 int invokeKernel2(struct Vector *vect,
     struct Vector *result,
-    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack,double* time,int threadXblock){
+    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack,double* time){
 
     for(int i=0;i<result->righe;i++){
         if(result->vettore[i]!=0){
@@ -451,7 +451,7 @@ int invokeKernel2(struct Vector *vect,
     cudaMemcpy(d_numBlocks, &cudaHllMat->numBlocks, sizeof(int), cudaMemcpyHostToDevice);
    
 
-    int block_size = threadXblock;
+    int block_size = 32;
     int num_threads = matHll->numBlocks * hack;
     int grid_size = (num_threads + block_size - 1) / block_size;
     size_t shared_mem_size = num_threads * sizeof(double);
@@ -511,7 +511,7 @@ int invokeKernel2(struct Vector *vect,
 
 int invokeKernel3(struct Vector *vect,
     struct Vector *result,
-    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack,double* time,int threadXblock ){
+    struct FlatELLMatrix *cudaHllMat, struct MatriceHLL *matHll,int hack,double* time ){
 
     cudaEvent_t start,stop;
 
@@ -579,7 +579,7 @@ int invokeKernel3(struct Vector *vect,
    
     
    
-    int threadsPerBlock =threadXblock;
+    int threadsPerBlock = 32;
     int numBlocks = matHll->totalRows;
    
     cudaEventCreate(&start);
