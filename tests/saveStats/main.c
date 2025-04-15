@@ -307,7 +307,7 @@ if (flatHll != 0){
 }
 
 //------------------------------CUDA HLL  1-----------------------------//
-for(unsigned int  j=32;j<200;j=j*2){
+for(unsigned int  j=64;j<200;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
@@ -328,13 +328,14 @@ for(unsigned int  j=32;j<200;j=j*2){
         double diff;
         double percentage;
         calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
-        
+        result.errorPercentage=percentage;
+        result.errorValue=diff;
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
 }
 //------------------------------CUDA HLL  2-----------------------------//
-for(unsigned int  j=32;j<200;j=j*2){
+for(unsigned int  j=64;j<200;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
@@ -355,13 +356,14 @@ for(unsigned int  j=32;j<200;j=j*2){
         double diff;
         double percentage;
         calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
-        
+        result.errorPercentage=percentage;
+        result.errorValue=diff;
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
 }
 //------------------------------CUDA HLL  3-----------------------------//
-for(unsigned int  j=32;j<200;j=j*2){
+for(unsigned int  j=64;j<200;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
@@ -382,7 +384,8 @@ for(unsigned int  j=32;j<200;j=j*2){
         double diff;
         double percentage;
         calculate_vector_differences(resultV,resultSerial,&diff,&percentage);
-        
+        result.errorPercentage=percentage;
+        result.errorValue=diff;
         append_csv_entry(csv,&result);
     }
     freeRandom(&resultV); 
