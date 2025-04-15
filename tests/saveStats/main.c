@@ -236,7 +236,7 @@ for(unsigned int  j=256;j<257;j=j*2){
     freeRandom(&resultV); 
 }
 //------------------------------CUDA CSR  WARP KERNEL-----------------------------//
-for(unsigned int  j=256;j<257;j=j*2){
+for(unsigned int  j=32;j<200;j=j*2){
     struct CsvEntry result;
     struct Vector *resultV;
     generateEmpty(rows, &resultV);
@@ -267,7 +267,7 @@ if( coaliscanceMatCsr(csrMatrice,&coal)==-1){
         exit(-1);
 };
 
-for(unsigned int  j=256;j<257;j=j*2){
+for(unsigned int  j=32;j<200;j=j*2){
 
 
     struct CsvEntry result;
