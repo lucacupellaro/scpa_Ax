@@ -9,54 +9,84 @@ plt.style.use('ggplot')
 # Carica il file CSV
 df = pd.read_csv('test.csv')
 
-# Visualizzazioni suggerite:
+# Filtra il DataFrame per includere solo le righe con Mode 'serial', 'openMp'
+modes_to_plot = ['serial', 'openMp']
+df_filtered = df[df['Mode'].isin(modes_to_plot)].copy()
 
-# 1. Line plot del Measure Value rispetto al Measure Index, separato per Mode e Matrix Format
-plt.figure(figsize=(12, 6))
-sns.lineplot(data=df, x='Measure Index', y='Measure Value', hue='Mode', style='Matrix Format', marker='o')
-plt.title('Measure Value vs Measure Index per Mode e Matrix Format')
-plt.xlabel('Measure Index')
-plt.ylabel('Measure Value')
-plt.grid(True)
-plt.legend()
-plt.tight_layout()
-plt.show()
-# 2. Bar plot del Measure Value medio per Mode, separato per Matrix Format
-plt.figure(figsize=(10, 5))
-sns.barplot(data=df, x='Matrix Format', y='Measure Value', hue='Mode')
-plt.title('Valore Medio della Misura per Mode e Matrix Format')
-plt.xlabel('Matrix Format')
-plt.ylabel('Valore Medio della Misura')
-plt.legend(title='Mode')
-plt.tight_layout()
-plt.show()
+# Calcola la media dei 'Measure Value' per ogni 'Matrix Name', 'Mode' e 'Matrix Format'
+average_performance_combined = df_filtered.groupby(['Matrix Name', 'Mode', 'Matrix Format'])['Measure Value'].mean().reset_index()
 
-# 3. Box plot del Measure Value per Mode, separato per Matrix Format
-plt.figure(figsize=(10, 5))
-sns.boxplot(data=df, x='Matrix Format', y='Measure Value', hue='Mode')
-plt.title('Distribuzione del Valore della Misura per Mode e Matrix Format')
-plt.xlabel('Matrix Format')
-plt.ylabel('Measure Value')
-plt.legend(title='Mode')
+# Crea una nuova colonna per la legenda combinata
+def create_combined_legend_label(row):
+    return f"{row['Mode']} ({row['Matrix Format']})"
+
+average_performance_combined['Legend Label'] = average_performance_combined.apply(create_combined_legend_label, axis=1)
+
+# Crea il grouped bar plot combinato
+plt.figure(figsize=(14, 8))
+sns.barplot(x='Matrix Name', y='Measure Value', hue='Legend Label', data=average_performance_combined)
+plt.title('Average Performance by Matrix and Mode (OpenMP CSR vs OpenMP HLL vs Serial)')
+plt.xlabel('Matrix Name')
+plt.ylabel('Average Measure Value')
+plt.xticks(rotation=45, ha='right')
+plt.legend(title='Mode (Format)')
 plt.tight_layout()
 plt.show()
 
-# 4. Scatter plot del Measure Value rispetto al Number of Threads, separato per Mode e Matrix Format
-plt.figure(figsize=(12, 6))
-sns.scatterplot(data=df, x='Number of Threads', y='Measure Value', hue='Mode', style='Matrix Format', s=100)
-plt.title('Measure Value vs Number of Threads per Mode e Matrix Format')
-plt.xlabel('Number of Threads')
-plt.ylabel('Measure Value')
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.show()
+# Funzioni originali per il grafico semplice (mantenute per compatibilità)
+def calculate_average_performance(df):
+    """Calculates the average 'Measure Value' for each 'Matrix Name' and 'Mode'."""
+    average_performance = df.groupby(['Matrix Name', 'Mode'])['Measure Value'].mean().reset_index()
+    return average_performance
 
-# 5. Facet Grid per visualizzare Measure Value vs Measure Index per combinazioni di Mode e Matrix Format
-g = sns.FacetGrid(df, col='Mode', row='Matrix Format', height=4, aspect=1.5)
-g.map(sns.lineplot, 'Measure Index', 'Measure Value', marker='o')
-g.add_legend()
-g.set_axis_labels('Measure Index', 'Measure Value')
-g.fig.suptitle('Measure Value vs Measure Index per Mode e Matrix Format', y=1.02)
-plt.tight_layout()
-plt.show()
+average_performance_df = calculate_average_performance(df_filtered)
+
+def prepare_plotting_data(average_performance):
+    """Prepares data for plotting by pivoting the DataFrame."""
+    plotting_data = average_performance.pivot(index='Matrix Name', columns='Mode', values='Measure Value').reset_index()
+    plotting_data = plotting_data.melt(id_vars='Matrix Name', var_name='Mode', value_name='Average Measure Value')
+    return plotting_data
+
+plotting_df = prepare_plotting_data(average_performance_df)
+
+def create_grouped_bar_plot(plotting_df):
+    """Creates a grouped bar plot to visualize average performance."""
+    plt.figure(figsize=(12, 8))
+    sns.barplot(x='Matrix Name', y='Average Measure Value', hue='Mode', data=plotting_df)
+    plt.title('Average Performance by Matrix and Mode')
+    plt.xlabel('Matrix Name')
+    plt.ylabel('Average Measure Value')
+    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better readability
+    plt.tight_layout()
+    plt.show()
+
+create_grouped_bar_plot(plotting_df)
+
+
+# Filtra per Matrix Format (csr o hll)
+df_filtered = df[df['Matrix Format'].isin(['csr', 'hll'])].copy()
+
+# Filtra per Mode che inizia con 'cuda'
+df_filtered = df_filtered[df_filtered['Mode'].str.startswith('cuda', na=False)].copy()
+
+# Verifica se ci sono dati dopo il filtraggio
+if df_filtered.empty:
+    print("Nessun dato corrispondente ai criteri di filtro.")
+else:
+    # Calcola la media di 'Measure Value' per ogni 'Matrix Name' e 'Mode'
+    average_performance = df_filtered.groupby(['Matrix Name', 'Mode', 'Matrix Format'])['Measure Value'].mean().reset_index()
+
+    # Crea un grafico a barre per ogni Matrix Format
+    for matrix_format in average_performance['Matrix Format'].unique():
+        df_format = average_performance[average_performance['Matrix Format'] == matrix_format]
+
+        plt.figure(figsize=(12, 6))  # Adjust figure size as needed
+        sns.barplot(x='Matrix Name', y='Measure Value', hue='Mode', data=df_format)
+        plt.title(f'Average Measure Value for {matrix_format} (CUDA Modes)')
+        plt.xlabel('Matrix Name')
+        plt.ylabel('Average Measure Value')
+        plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels
+        plt.legend(title='Mode')
+        plt.tight_layout()
+        plt.show()
+

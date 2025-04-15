@@ -101,6 +101,7 @@ int parallelCsrMult(struct MatriceCsr *csr, struct Vector *vec, struct Vector *r
         //printf("Hello from thread %d\n", thread_id);
 
         double sum = 0.0;
+        #pragma omp simd reduction(+:sum)
         for (int j = csr->iRP[i]; j < csr->iRP[i + 1]; j++)
         {
             sum += csr->valori[j] * vec->vettore[csr->jValori[j]];
