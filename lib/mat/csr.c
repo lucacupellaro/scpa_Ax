@@ -174,7 +174,7 @@ int coaliscanceMatCsr(MatriceCsr * normale, MatriceCsr **sistemata) {
     }
 
     // Allocate iRP for pairs of (start, end_padded) indices
-    sistemataP->iRP = malloc(sizeof(int) * (sistemataP->height * 2));
+    sistemataP->iRP = malloc(sizeof(int) * (sistemataP->height ));
     if (sistemataP->iRP == NULL) {
         fprintf(stderr, "Errore: Allocazione memoria fallita per sistemataP->iRP.\n");
         free(paddings);
@@ -192,7 +192,7 @@ int coaliscanceMatCsr(MatriceCsr * normale, MatriceCsr **sistemata) {
         unsigned int pad = paddings[i];
         unsigned int baseNormale = normale->iRP[i];
 
-        sistemataP->iRP[i * 2] = current_pos; // Start index for row i
+        sistemataP->iRP[i ] = current_pos; // Start index for row i
 
         // Copy existing values and column indices
         if (elements > 0) {
@@ -211,7 +211,7 @@ int coaliscanceMatCsr(MatriceCsr * normale, MatriceCsr **sistemata) {
                 current_pos+=1;
             }
         }
-        sistemataP->iRP[i * 2 + 1] = current_pos; // End index (exclusive) for padded row i
+        sistemataP->iRP[i + 1] = current_pos; // End index (exclusive) for padded row i
     }
 
     free(paddings); // Free the temporary padding array
