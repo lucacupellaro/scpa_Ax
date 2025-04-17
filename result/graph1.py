@@ -3,17 +3,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from io import StringIO
 
-# Imposta lo stile ggplot per un aspetto semplice e pulito
+
 plt.style.use('ggplot')
 
-# Carica il file CSV
+
 df = pd.read_csv('test.csv')
 
-# Filtra il DataFrame per includere solo le righe con Mode 'serial', 'openMp'
+
 modes_to_plot = ['serial', 'openMp']
+modes_to_plot2 = ['openMp']
 df_filtered = df[df['Mode'].isin(modes_to_plot)].copy()
 
-# Calcola la media dei 'Measure Value' per ogni 'Matrix Name', 'Mode' e 'Matrix Format'
+
 average_performance_combined = df_filtered.groupby(['Matrix Name', 'Mode', 'Matrix Format'])['Measure Value'].mean().reset_index()
 
 # Crea una nuova colonna per la legenda combinata
