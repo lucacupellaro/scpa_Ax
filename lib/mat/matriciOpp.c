@@ -68,11 +68,13 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
     if ((f = fopen(filePath, "r")) == NULL) {
             printf("Non trovo %s\n",filePath);
             return 0;}
+
     if (mm_read_banner(f, &matcode) != 0)
     {
         printf("Could not process Matrix Market banner.\n");
         return 0;
     }
+
 
     if (!mm_is_matrix(matcode) || !mm_is_coordinate(matcode)) {
         fprintf(stderr, "Errore: supportate solo matrici sparse in formato coordinate.\n");
@@ -93,15 +95,35 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
     }
 
     /* find out size of sparse matrix .... */
+
     if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) !=0)return -2;
+
+
     /* reseve memory for matrices */
 
+    // Prima dell'allocazione della memoria
+
+    if (nz <= 0 || nz > (M * N)) {
+        printf("Errore: Numero di elementi non zero (nz=%d) non valido\n", nz);
+        return 0;
+    }
+
+    // Verifica overflow nella moltiplicazione per sizeof
+    size_t size_needed = (size_t)nz * sizeof(int);
+    if (size_needed / sizeof(int) != (size_t)nz) {
+        printf("Errore: Overflow nel calcolo della dimensione della memoria\n");
+        return 0;
+    }
+
+    ;
     //Inizializzando la struttura
     *matricePointer=malloc(sizeof(struct MatriceRaw));
     struct MatriceRaw *matrice = *matricePointer;
     matrice->height=M;
     matrice->width=N;
     matrice->nz=nz;
+
+
     matrice->iVettore = (int *) malloc(nz * sizeof(int));
     matrice->jVettore = (int *) malloc(nz * sizeof(int));
     matrice->valori = (double *) malloc(nz * sizeof(double));
@@ -111,14 +133,32 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
     /*   specifier as in "%lg", "%lf", "%le", otherwise errors will occur */
     /*  (ANSI C X3.159-1989, Sec. 4.9.6.2, p. 136 lines 13-15)            */
 
-    for (int i=0; i<nz; i++)
-    {
-        fscanf(f, "%d %d %lg\n", &matrice->iVettore[i], &matrice->jVettore[i], &matrice->valori[i]);
-        matrice->iVettore[i]--;  /* adjust from 1-based to 0-based */
-        matrice->jVettore[i]--;
-    }
+     if(mm_is_pattern(matcode)){
+           for (int i=0; i<nz; i++)
+                     {
+                         fscanf(f, "%d %d \n", &matrice->iVettore[i], &matrice->jVettore[i]);
+                         matrice->iVettore[i]--;  /* adjust from 1-based to 0-based */
+                         matrice->jVettore[i]--;
+                         matrice->valori[i]=1;
+
+                     }
+     }else{
+          for (int i=0; i<nz; i++)
+             {
+                 fscanf(f, "%d %d %lg\n", &matrice->iVettore[i], &matrice->jVettore[i], &matrice->valori[i]);
+                 matrice->iVettore[i]--;  /* adjust from 1-based to 0-based */
+                 matrice->jVettore[i]--;
+                 printf("Debug 9: Allocazione vettori matrici iVettore,jVettore,valori per %d elementi\n", matrice->iVettore[0]);
+
+             }
+     }
+     printf("Debug 8: letto tutto\n");
+
+
 
     if (f !=stdin) fclose(f);
+
+
 
      //symmetric matrix
      if (mm_is_symmetric(matcode)) {
@@ -171,6 +211,9 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
         matrice->valori = new_val;
         matrice->nz = new_nz;
     }
+
+     printf("Debug 8: letto tutto\n");
+
 
     /************************/
     /* now write out matrix */

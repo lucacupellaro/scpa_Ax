@@ -4,7 +4,7 @@ project(openM VERSION 0.1)
 
 find_package(OpenMP REQUIRED)
 
-set(CMAKE_CUDA_ARCHITECTURES 60)
+#set(CMAKE_CUDA_ARCHITECTURES 60)
 
 # Set OpenMP flags globally for all targets
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fopenmp")
