@@ -83,6 +83,42 @@ int main(int argc, char *argv[]) {
 }
 
 
+int calculateHackSize(MatriceRaw *rawMat) {
+    int totalRows = rawMat->width;
+    int nz = rawMat->nz;
+    if (nz == 0) return 1;
+
+    int *row_nz_counts = calloc(totalRows, sizeof(int));
+    if (!row_nz_counts) {
+        perror("Errore allocazione row_nz_counts");
+        return totalRows;
+    }
+
+    for (int i = 0; i < nz; i++) {
+        row_nz_counts[rawMat->iVettore[i]]++;
+    }
+
+    double avg_nz_per_row = (double)nz / totalRows;
+    double var_nz_per_row = 0.0;
+    for (int i = 0; i < totalRows; i++) {
+        var_nz_per_row += pow(row_nz_counts[i] - avg_nz_per_row, 2);
+    }
+    var_nz_per_row /= totalRows;
+
+    free(row_nz_counts);
+
+    // Logica per determinare hack_size in base a avg e var
+    int hack_size;
+    if (var_nz_per_row < 10) { // Bassa varianza: righe simili
+        hack_size = totalRows; // Un unico blocco
+    } else if (var_nz_per_row < 100) {
+        hack_size = nz / 50; // Valore intermedio
+    } else {
+        hack_size = nz / 200; // Alta varianza: blocchi piccoli
+    }
+    return fmax(1, fmin(hack_size, totalRows)); // Assicurati che sia valido
+}
+
 int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
     char full_matrix_path[512]; // Increased buffer size
     snprintf(full_matrix_path, sizeof(full_matrix_path), "../../../%s/%s", MATRIX_DIR, matrix_name);
@@ -110,7 +146,8 @@ int process_matrix(const char *matrix_name, const AppConfig *config,FILE * csv){
          fprintf(stderr, "Error converting %s to CSR\n", matrix_name);
          goto cleanup;
     }
-    int hack=mat->nz/20;
+    int hack=calculateHackSize(mat);
+    //int hack=mat->nz/200;
     convertRawToHll(mat, hack, &matHll);
      if (!matHll) {
           fprintf(stderr, "Error converting %s to HLL (block length %d)\n", matrix_name, hack);
