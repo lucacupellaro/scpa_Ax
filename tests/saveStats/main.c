@@ -114,7 +114,7 @@ int calculateHackSize(MatriceRaw *rawMat) {
     } else if (var_nz_per_row < 100) {
         hack_size = nz / 50; // Valore intermedio
     } else {
-        hack_size = nz / 200; // Alta varianza: blocchi piccoli
+        hack_size = nz / 2000; // Alta varianza: blocchi piccoli
     }
     return fmax(1, fmin(hack_size, totalRows)); // Assicurati che sia valido
 }
