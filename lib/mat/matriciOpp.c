@@ -148,7 +148,7 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
                  fscanf(f, "%d %d %lg\n", &matrice->iVettore[i], &matrice->jVettore[i], &matrice->valori[i]);
                  matrice->iVettore[i]--;  /* adjust from 1-based to 0-based */
                  matrice->jVettore[i]--;
-                 printf("Debug 9: Allocazione vettori matrici iVettore,jVettore,valori per %d elementi\n", matrice->iVettore[0]);
+             //    printf("Debug 9: Allocazione vettori matrici iVettore,jVettore,valori per %d elementi\n", matrice->iVettore[0]);
 
              }
      }
