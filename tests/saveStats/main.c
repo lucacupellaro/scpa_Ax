@@ -106,6 +106,7 @@ int calculateHackSize(MatriceRaw *rawMat) {
     var_nz_per_row /= totalRows;
 
     free(row_nz_counts);
+    printf(" varianza: %lf\n",var_nz_per_row);
 
     // Logica per determinare hack_size in base a avg e var
     int hack_size;
