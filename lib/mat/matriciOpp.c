@@ -62,7 +62,7 @@ int loadMatRaw(char *filePath, struct MatriceRaw ** matricePointer)
     int ret_code;
     MM_typecode matcode;
     FILE *f;
-    unisegned long int M, N, nz;   
+    unsigned long int M, N, nz;   
     filePath=resolve_symlink(filePath);
     printf("%s\n",filePath);
     if ((f = fopen(filePath, "r")) == NULL) {
