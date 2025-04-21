@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
+set(CMAKE_CUDA_ARCHITECTURES 75)
 project(openM LANGUAGES C CXX CUDA)
 
 # Set CUDA standard
