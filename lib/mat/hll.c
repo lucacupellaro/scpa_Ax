@@ -242,7 +242,7 @@ int convertRawToEllpack(struct MatriceRaw *matricePointer, int acksize, ELLPACK_
         block->AS[i * MAXNZ + pos] = val;
         filled[i]++;
 
-        printf("[DEBUG] k=%d, i=%d, pos=%d, j=%d, val=%f,JA=%d,AS=%g\n", k, i, pos, j, val,block->JA[i * MAXNZ + pos],  block->AS[i * MAXNZ + pos] = val);
+      //  printf("[DEBUG] k=%d, i=%d, pos=%d, j=%d, val=%f,JA=%d,AS=%g\n", k, i, pos, j, val,block->JA[i * MAXNZ + pos],  block->AS[i * MAXNZ + pos] = val);
     }
 
     free(row_nnz);
